@@ -20,7 +20,7 @@ int elbow_min_position = 0;
 int elbow_max_position = 5000;
 
 int shoulder_min_position = 0;
-int shoulder_max_position = 5000;
+int shoulder_max_position = 2000;
 
 int base_min_position = 0;
 int base_max_position = 5000;
@@ -45,8 +45,8 @@ void setup() {
   // Set the initial target position
   // Serial.println("Shoulder Target Number Of steps = " + String(shoulder_max_position));
   shoulder_stepper.moveTo(shoulder_max_position);
-  elbow_stepper.moveTo(elbow_max_position);
-  base_stepper.moveTo(base_max_position);
+  //elbow_stepper.moveTo(elbow_max_position);
+  //base_stepper.moveTo(base_max_position);
 
   // Wait for the serial port to be available
   while (!Serial) {
@@ -71,34 +71,40 @@ void stepper_manage_range_of_motion(AccelStepper &stepper_type, int min_pos, int
   } 
 }
 
-bool goCommandReceived = false;
-
+String currentCommand = "stop";
 void loop() {
-  // If the command has not been received, wait for it
-  if (!goCommandReceived) {
-    // Check if there is data available to read from the serial port
-    if (Serial.available() > 0) {
-      // Read the input from the user
-      String userInput = Serial.readStringUntil('\n');  // Read until the user presses Enter
-      // Trim any extra spaces or newlines
-      userInput.trim();
-      // If the user enters 'start', proceed to the main program
-      if (userInput == "go") {
-        goCommandReceived = true;
-        Serial.println("Command received. Starting the program...");
-      } 
+
+  // Check if there is data available to read from the serial port
+  if (Serial.available() > 0) 
+  {
+    // Read the input from the user
+    String userInput = Serial.readStringUntil('\n');  // Read until the user presses Enter
+    // Trim any extra spaces or newlines
+    userInput.trim();
+    // If the user enters 'start', proceed to the main program
+    if (userInput == "go") 
+    {
+      currentCommand = "go";
+      Serial.println("GO Command received (go). Starting the robotic arm...");
+    } 
+    else if (userInput == "s")
+    {
+      currentCommand = "stop";
+      Serial.println("STOP Command received (s). Stopping the robotic arm...");
     }
-  } 
-  else {
-    // Once the 'start' command is received, execute the main logic
-    // Your program logic starts here
-    // // Serial.println("Now running the main program...");
+  }
+
+  if (currentCommand == "go")
+  {
+    // Once the 'go' command is received, execute the main logic
     shoulder_stepper.run();
-    elbow_stepper.run();  
-    base_stepper.run();
+    //elbow_stepper.run();  
+    //base_stepper.run();
 
     stepper_manage_range_of_motion(shoulder_stepper, shoulder_min_position, shoulder_max_position);
-    stepper_manage_range_of_motion(elbow_stepper, elbow_min_position, elbow_max_position);
-    stepper_manage_range_of_motion(base_stepper, base_min_position, base_max_position);
+    //stepper_manage_range_of_motion(elbow_stepper, elbow_min_position, elbow_max_position);
+    //stepper_manage_range_of_motion(base_stepper, base_min_position, base_max_position);
   }
+
+
 }
