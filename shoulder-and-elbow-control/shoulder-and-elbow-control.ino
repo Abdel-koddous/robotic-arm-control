@@ -78,10 +78,9 @@ int stepper_manage_range_of_motion(AccelStepper &stepper_type, int min_pos, int 
   return result;
 }
 
-int motionPlanningStep = 1;
-String currentCommand = "stop";
-void loop() {
-
+int checkUserSerialInput()
+{
+  int userCommand = -1;
   // Check if there is data available to read from the serial port
   if (Serial.available() > 0) 
   {
@@ -92,23 +91,32 @@ void loop() {
     // If the user enters 'start', proceed to the main program
     if (userInput == "go") 
     {
-      currentCommand = "go";
+      userCommand = 1;
       Serial.println("GO Command received (go). Starting the robotic arm...");
     } 
     else if (userInput == "s")
     {
-      currentCommand = "stop";
+      userCommand = 0;
       Serial.println("STOP Command received (s). Stopping the robotic arm...");
     }
   }
 
-  if (currentCommand == "go")
+  return userCommand;
+
+}
+int motionPlanningStep = 1;
+int currentCommand = 0;
+
+void loop() {
+
+  currentCommand = checkUserSerialInput();
+
+  if (currentCommand == 1)
   {
     int motion_result = -1;
 
     // Motion Planning Sequence
-    
-
+  
     switch (motionPlanningStep) {
       case 1:
         shoulder_stepper.run();
