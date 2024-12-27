@@ -20,10 +20,10 @@ int elbow_min_position = 0;
 int elbow_max_position = 5000;
 
 int shoulder_min_position = 0;
-int shoulder_max_position = 2000;
+int shoulder_max_position = 3000;
 
 int base_min_position = 0;
-int base_max_position = 5000;
+int base_max_position = 4500;
 
 int step_increments = 0;
 
@@ -45,8 +45,8 @@ void setup() {
   // Set the initial target position
   // Serial.println("Shoulder Target Number Of steps = " + String(shoulder_max_position));
   shoulder_stepper.moveTo(shoulder_max_position);
-  //elbow_stepper.moveTo(elbow_max_position);
-  //base_stepper.moveTo(base_max_position);
+  elbow_stepper.moveTo(elbow_max_position);
+  base_stepper.moveTo(base_max_position);
 
   // Wait for the serial port to be available
   while (!Serial) {
@@ -57,20 +57,28 @@ void setup() {
   
 }
 
-void stepper_manage_range_of_motion(AccelStepper &stepper_type, int min_pos, int max_pos)
+int stepper_manage_range_of_motion(AccelStepper &stepper_type, int min_pos, int max_pos)
 {
+  int result = -1;
+  
   if (stepper_type.currentPosition()==max_pos)
   {
-    // Serial.println("Moving to new target " + String(shoulder_min_position) + " steps");
+    result = max_pos;
+    //Serial.println("Stepper max position reached at " + String(result) + " steps");
     stepper_type.moveTo(min_pos);
+
   }
   else if (stepper_type.currentPosition()==min_pos)
   {
-    // Serial.println("Moving to new target " + String(shoulder_max_position) + " steps");
+    result = min_pos;
+    //Serial.println("Stepper min position reached at " + String(result) + " steps");
     stepper_type.moveTo(max_pos);
   } 
+
+  return result;
 }
 
+int motionPlanningStep = 1;
 String currentCommand = "stop";
 void loop() {
 
@@ -96,14 +104,81 @@ void loop() {
 
   if (currentCommand == "go")
   {
-    // Once the 'go' command is received, execute the main logic
-    shoulder_stepper.run();
-    //elbow_stepper.run();  
-    //base_stepper.run();
+    int motion_result = -1;
 
-    stepper_manage_range_of_motion(shoulder_stepper, shoulder_min_position, shoulder_max_position);
+    // Motion Planning Sequence
+    
+
+    switch (motionPlanningStep) {
+      case 1:
+        shoulder_stepper.run();
+        motion_result = stepper_manage_range_of_motion(shoulder_stepper, shoulder_min_position, shoulder_max_position);
+        if (motion_result == shoulder_max_position)
+        {
+          motionPlanningStep = 2;
+          Serial.println("Next Step in Motion Planning Sequence = " + String(motionPlanningStep));
+        }
+        break;
+
+      case 2:
+        base_stepper.run();
+        motion_result = stepper_manage_range_of_motion(base_stepper, base_min_position, base_max_position);
+        if (motion_result == base_max_position)
+        {
+          motionPlanningStep = 3;
+          Serial.println("Next Step in Motion Planning Sequence = " + String(motionPlanningStep));
+        }
+        break;
+
+      case 3:
+        shoulder_stepper.run();
+        motion_result = stepper_manage_range_of_motion(shoulder_stepper, shoulder_min_position, shoulder_max_position);
+        if (motion_result == shoulder_min_position)
+        {
+          motionPlanningStep = 4;
+          Serial.println("Next Step in Motion Planning Sequence = " + String(motionPlanningStep));
+        }
+        break;
+
+      case 4:
+        shoulder_stepper.run();
+        motion_result = stepper_manage_range_of_motion(shoulder_stepper, shoulder_min_position, shoulder_max_position);
+        if (motion_result == shoulder_max_position)
+        {
+          motionPlanningStep = 5;
+          Serial.println("Next Step in Motion Planning Sequence = " + String(motionPlanningStep));
+        }
+        break;
+
+      case 5:
+        base_stepper.run();
+        motion_result = stepper_manage_range_of_motion(base_stepper, shoulder_min_position, shoulder_max_position);
+        if (motion_result == base_min_position)
+        {
+          motionPlanningStep = 6;
+          Serial.println("Next Step in Motion Planning Sequence = " + String(motionPlanningStep));
+        }
+        break;
+
+      case 6:
+        shoulder_stepper.run();
+        motion_result = stepper_manage_range_of_motion(shoulder_stepper, shoulder_min_position, shoulder_max_position);
+        if (motion_result == shoulder_min_position)
+        {
+          motionPlanningStep = 1;
+          Serial.println("Next Step in Motion Planning Sequence = " + String(motionPlanningStep));
+        }
+        break;
+
+
+      default:
+        // if nothing else matches, do the default
+        Serial.println("motionPlanningStep NOT HANDLED PROPERLY...");
+        break;
+    }    
+
+    //elbow_stepper.run();  
     //stepper_manage_range_of_motion(elbow_stepper, elbow_min_position, elbow_max_position);
-    //stepper_manage_range_of_motion(base_stepper, base_min_position, base_max_position);
   }
 
 
