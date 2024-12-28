@@ -44,9 +44,9 @@ void setup() {
   digitalWrite(enablePin, LOW);    // LOW to enable, HIGH to disable
   // Set the initial target position
   // Serial.println("Shoulder Target Number Of steps = " + String(shoulder_max_position));
-  shoulder_stepper.moveTo(shoulder_max_position);
+  /*shoulder_stepper.moveTo(shoulder_max_position);
   elbow_stepper.moveTo(elbow_max_position);
-  base_stepper.moveTo(base_max_position);
+  base_stepper.moveTo(base_max_position);*/
 
   // Wait for the serial port to be available
   while (!Serial) {
@@ -81,18 +81,25 @@ int stepper_manage_range_of_motion(AccelStepper &stepper_type, int min_pos, int 
 void parseMoveCommand(String move_command, int * commands_params)
 {
 
-  commands_params[0] = move_command.substring(1, 2).toInt();  // Joint id
-  commands_params[1] = move_command.substring(2, 3).toInt();; // Direction (clockwise | counter clockwise) - NOT MANAGED YET
-  commands_params[2] = move_command.substring(3).toInt();;    // Nb of steps
+  commands_params[1] = move_command.substring(1, 2).toInt();  // Joint id
+  commands_params[2] = move_command.substring(2, 3).toInt();; // Direction (clockwise | counter clockwise) - NOT MANAGED YET
+  commands_params[3] = move_command.substring(3).toInt();;    // Nb of steps
 
-  Serial.println("Joint ID = " + String(commands_params[0]));
-  Serial.println("MOVE Direction = " + String(commands_params[1]) + " Not yet managed...");
-  Serial.println("Nb of Steps = " + String(commands_params[2]));
+  Serial.println("Joint ID = " + String(commands_params[1]));
+  Serial.println("MOVE Direction = " + String(commands_params[2]) + " Not yet managed...");
+  Serial.println("Nb of Steps = " + String(commands_params[3]));
 }
 
-String checkUserSerialInput(String current_command)
+String checkUserSerialInput(String current_command, int command_parameters[4])
 {
   String new_command = "none";
+  /*
+  for (int param_index = 0; param_index < 4; param_index++)
+  {
+    command_parameters[param_index] = 0xffff; // Initialize command parameters with default dirty value
+  }
+  */
+
   // Check if there is data available to read from the serial port
   if (Serial.available() > 0) 
   {
@@ -104,20 +111,21 @@ String checkUserSerialInput(String current_command)
     if (userInput == "go") 
     {
       new_command = "go";
+      command_parameters[0] = 0;
       Serial.println("GO Command received (go). Starting the robotic arm...");
     } 
     else if (userInput == "s")
     {
       new_command = "stop";
+      command_parameters[0] = 1;
       Serial.println("STOP Command received (s). Stopping the robotic arm...");
     }
     else if (userInput.substring(0, 1) == "m")
     {
       new_command = "move";
       Serial.println("Joints MOVE Command received (" + userInput + "). Moving Joint...");
-      int move_command_parameters[3] = {0xffff, 0xffff, 0xffff};
-      parseMoveCommand(userInput, move_command_parameters);
-
+      command_parameters[0] = 2;
+      parseMoveCommand(userInput, command_parameters);
     }
     else
     {
@@ -133,44 +141,85 @@ String checkUserSerialInput(String current_command)
   return new_command;
 
 }
-int joint_id = 1; // 0 = base, 1 = shoulder, 2 = elbow, 3 = gripper
-String currentCommand = "stop";
+int joint_id = -1; // 0 = base, 1 = shoulder, 2 = elbow, 3 = gripper
+String current_command = "stop";
+int new_command_params[4];  // Declare an array of size 4
+bool stepper_started = false;
+  
 
 void loop() {
 
-  String newCommand = checkUserSerialInput(currentCommand);
+  String new_command = checkUserSerialInput(current_command, new_command_params);
 
-  if (newCommand == "go")
+  if (new_command == "move")
   {
-    int motion_result = -1;
+    joint_id = new_command_params[1];
+    int direction = (new_command_params[2] == 0) ? 1 : -1; // 
+    int target_position = new_command_params[3];
 
-    // Motion Planning Sequence
-  
     switch (joint_id) {
-      case 1:
-        shoulder_stepper.run();
-        motion_result = stepper_manage_range_of_motion(shoulder_stepper, shoulder_min_position, shoulder_max_position);
-        if (motion_result == shoulder_max_position)
+      case 0:
+        if (stepper_started == false)
         {
-          joint_id = 2;
-          Serial.println("Next Step in Motion Planning Sequence = " + String(joint_id));
+          base_stepper.moveTo(direction * target_position); // Nb of Steps in the specified direction
+          stepper_started = true;
+          base_stepper.run();
+          Serial.println("base_stepper STARTED with target position : " + String(target_position));
+        }
+        else
+        {
+          base_stepper.run();
+          if (base_stepper.currentPosition() == target_position)
+          {
+            Serial.println("base_stepper REACHED target position " + String(target_position));
+            stepper_started = false;
+            new_command = "stop";
+          }
         }
         break;
 
-      case 2:
-        base_stepper.run();
-        motion_result = stepper_manage_range_of_motion(base_stepper, base_min_position, base_max_position);
-        if (motion_result == base_max_position || motion_result == base_min_position)
+      case 1:
+        if (stepper_started == false)
         {
-          joint_id = 1;
-          Serial.println("Next Step in Motion Planning Sequence = " + String(joint_id));
+          shoulder_stepper.moveTo(target_position); // Nb of Steps in the specified direction
+          stepper_started = true;
+          shoulder_stepper.run();
+          Serial.println("shoulder_stepper STARTED with target position : " + String(target_position));
+        }
+        else
+        {
+          shoulder_stepper.run();
+          if (shoulder_stepper.currentPosition() == target_position)
+          {
+            Serial.println("shoulder_stepper REACHED target position " + String(target_position));
+            stepper_started = false;
+            new_command = "stop";
+          }
+        }
+        break;
+
+        case 2:
+        if (stepper_started == false)
+        {
+          elbow_stepper.moveTo(target_position); // Nb of Steps in the specified direction
+          stepper_started = true;
+          elbow_stepper.run();
+          Serial.println("elbow_stepper STARTED with target position : " + String(target_position));
+        }
+        else
+        {
+          elbow_stepper.run();
+          if (elbow_stepper.currentPosition() == target_position)
+          {
+            Serial.println("elbow_stepper REACHED target position " + String(target_position));
+            stepper_started = false;
+            new_command = "stop";
+          }
         }
         break;
     }    
 
-    //elbow_stepper.run();  
-    //stepper_manage_range_of_motion(elbow_stepper, elbow_min_position, elbow_max_position);
   }
 
-  currentCommand = newCommand;
+  current_command = new_command;
 }
