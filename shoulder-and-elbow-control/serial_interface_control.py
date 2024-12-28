@@ -11,7 +11,7 @@ class SerialInterface:
         try:
             self.serial_connection = serial.Serial(self.port, self.baudrate)
             print(f"Connected to {self.port} at {self.baudrate} baud.")
-            time.sleep(1)
+            time.sleep(2)
         except serial.SerialException as e:
             print(f"Error connecting to serial port: {e}")
 
@@ -38,20 +38,31 @@ class SerialInterface:
                 time.sleep(0.1)
         return output
 
-if __name__ == "__main__":
-    serial_interface = SerialInterface(port='COM5', baudrate=9600)
-    serial_interface.connect()
-    
-    time.sleep(1)
-    # Example command to send to the Arduino
-    move_joint_command = "m10100"  
-    serial_interface.send_command(move_joint_command)
+    def send_move_joint_command(self, command):
+        success = False
 
-    while True:
-        output = serial_interface.read_output()
-        if "stepper STARTED" in output:
-            print("Congrats! move joint command sent successfully :)")
-            break
-        time.sleep(1)
+        self.send_command(command)
+        while True:
+            output = self.read_output()
+            if "stepper STARTED" in output:
+                print("Congrats! move joint command sent successfully :)")
+                success = True
+                break
+            time.sleep(1)
+        return success
+
+if __name__ == "__main__":
+
+    serial_interface = SerialInterface(port='COM5', baudrate=9600)
+
+    serial_interface.connect()
+    # Example command to send to the Arduino
+    move_joint_command = "m10500"      
+    serial_interface.send_move_joint_command(move_joint_command)
+
+    time.sleep(2)
+    move_joint_command = "m100" 
+    serial_interface.send_move_joint_command(move_joint_command)
 
     serial_interface.close()
+
