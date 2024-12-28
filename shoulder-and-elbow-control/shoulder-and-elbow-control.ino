@@ -78,6 +78,18 @@ int stepper_manage_range_of_motion(AccelStepper &stepper_type, int min_pos, int 
   return result;
 }
 
+void parseMoveCommand(String move_command, int * commands_params)
+{
+
+  commands_params[0] = move_command.substring(1, 2).toInt();  // Joint id
+  commands_params[1] = move_command.substring(2, 3).toInt();; // Direction (clockwise | counter clockwise) - NOT MANAGED YET
+  commands_params[2] = move_command.substring(3).toInt();;    // Nb of steps
+
+  Serial.println("Joint ID = " + String(commands_params[0]));
+  Serial.println("MOVE Direction = " + String(commands_params[1]) + " Not yet managed...");
+  Serial.println("Nb of Steps = " + String(commands_params[2]));
+}
+
 String checkUserSerialInput(String current_command)
 {
   String new_command = "none";
@@ -102,7 +114,10 @@ String checkUserSerialInput(String current_command)
     else if (userInput.substring(0, 1) == "m")
     {
       new_command = "move";
-      Serial.println("Joints MOVE Command received (" + userInput + "). NOT YET MANAGED...");
+      Serial.println("Joints MOVE Command received (" + userInput + "). Moving Joint...");
+      int move_command_parameters[3] = {0xffff, 0xffff, 0xffff};
+      parseMoveCommand(userInput, move_command_parameters);
+
     }
     else
     {
