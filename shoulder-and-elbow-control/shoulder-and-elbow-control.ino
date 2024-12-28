@@ -1,4 +1,5 @@
 #include <AccelStepper.h>
+#include <Servo.h>  
 
 // Pin assignments
 const int elbow_stepPin = 2;
@@ -15,6 +16,7 @@ const int homeSwitchPin = 7;
 AccelStepper elbow_stepper(AccelStepper::DRIVER, elbow_stepPin, elbow_dirPin);
 AccelStepper shoulder_stepper(AccelStepper::DRIVER, shoudler_stepPin, shoulder_dirPin);
 AccelStepper base_stepper(AccelStepper::DRIVER, base_stepPin, base_dirPin);
+Servo gripper_servo;  // Create a Servo object to control the servo motor
 
 int elbow_min_position = 0;
 int elbow_max_position = 5000;
@@ -42,6 +44,8 @@ void setup() {
   // Enable the driver (if needed)
   pinMode(enablePin, OUTPUT);
   digitalWrite(enablePin, LOW);    // LOW to enable, HIGH to disable
+
+  gripper_servo.attach(12); 
   // Set the initial target position
   // Serial.println("Shoulder Target Number Of steps = " + String(shoulder_max_position));
   /*shoulder_stepper.moveTo(shoulder_max_position);
@@ -53,7 +57,7 @@ void setup() {
     ; // Wait for the serial port to be ready
   }
   // Prompt the user for a command
-  Serial.println("Enter 'go' to begin the program."); 
+  //Serial.println("Enter 'go' to begin the program."); 
   
 }
 
@@ -217,6 +221,19 @@ void loop() {
           }
         }
         break;
+
+        case 3:
+          int servo_command = new_command_params[2];
+          if (servo_command == 0)
+          {
+            gripper_servo.write(0);
+          }
+          else if (servo_command == 1)
+          {
+            gripper_servo.write(160);
+          }
+          delay(2000);  // Wait for 4 second
+          new_command = "stop";
     }    
 
   }
