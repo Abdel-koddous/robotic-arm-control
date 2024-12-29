@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QApplication, QWidget, QHBoxLayout, QSlider, QPushButton, QLabel
+from PyQt6.QtWidgets import QApplication, QWidget, QHBoxLayout, QSlider, QPushButton, QLabel, QVBoxLayout
 from PyQt6.QtCore import Qt
 from serial_interface_control import SerialInterface
 class RoboticArmControlApp(QWidget):
@@ -8,40 +8,60 @@ class RoboticArmControlApp(QWidget):
         self.serial_interface = SerialInterface(port='COM5', baudrate=9600)
         self.serial_interface.connect()
 
-    def init_ui(self):
-        
-        self.setWindowTitle("Robotic Arm Control")
-        self.setGeometry(100, 100, 300, 200)
-
+    def create_joint_control(self, joint_name, joint_id, initial_value):
         layout = QHBoxLayout()
-        
-        self.label = QLabel("Shoulder Joint: 0")
-        layout.addWidget(self.label)
+        label = QLabel(f"{joint_name} Joint: {initial_value}")
+        layout.addWidget(label)
 
-        self.slider = QSlider(Qt.Orientation.Horizontal)
-        self.slider.setTickPosition(QSlider.TickPosition.TicksBelow)
-        self.slider.setTickInterval(100)
-        self.slider.setRange(0, 5000)
-        self.slider.setValue(0)
-        layout.addWidget(self.slider)
+        slider = QSlider(Qt.Orientation.Horizontal)
+        slider.setTickPosition(QSlider.TickPosition.TicksBelow)
+        slider.setTickInterval(100)
+        slider.setRange(0, 10000)
+        slider.setValue(initial_value)
+        layout.addWidget(slider)
 
-        self.slider.valueChanged.connect(self.update_label)
+        slider.valueChanged.connect(lambda value: self.update_label(label, joint_name, value))
 
-        self.button = QPushButton("Send Command")
-        self.button.clicked.connect(self.send_command)
-        layout.addWidget(self.button)
+        button = QPushButton("Set Joint")
+        button.clicked.connect(lambda: self.send_command(joint_id, slider.value()))
+        layout.addWidget(button)
 
-        self.setLayout(layout)
+        return layout
+    
+    def create_gripper_control(self):
+        gripper_layout = QHBoxLayout()
 
-    def update_label(self, value):
-        self.label.setText(f"Shoulder Joint: {value}")
+        open_button = QPushButton("Open Gripper")
+        open_button.clicked.connect(lambda: self.send_command(3, 0))
+        gripper_layout.addWidget(open_button)
 
-    def send_command(self):
-        value = self.slider.value()
-        command = f"m10{value}"  # Example command format
+        close_button = QPushButton("Close Gripper")
+        close_button.clicked.connect(lambda: self.send_command(3, 1))
+        gripper_layout.addWidget(close_button)
+
+        return gripper_layout
+
+    def init_ui(self):
+        main_layout = QVBoxLayout()  # Main vertical layout
+
+        # Create joint controls
+        main_layout.addLayout(self.create_joint_control("Base", 0, 0))
+        main_layout.addLayout(self.create_joint_control("Shoulder", 1, 0))
+        main_layout.addLayout(self.create_joint_control("Elbow", 2, 0))
+        main_layout.addLayout(self.create_gripper_control())
+
+        self.setLayout(main_layout)  # Set the main layout
+
+    def update_label(self, label, joint_name, value):
+        label.setText(f"{joint_name} Joint: {value}")
+
+    def send_command(self, joint_id, value):
+        command = f"m{joint_id}0{value}"  # Example command format
         print(f"Sending command: {command}")
-        # Here you would call the method to send the command to the serial interface
-        self.serial_interface.send_move_joint_command(command)
+        if joint_id == 3: # Gripper servo specific mgt
+            self.serial_interface.send_command(command)
+        else:
+            self.serial_interface.send_move_joint_command(command)
 
     def clean_up(self):
         self.serial_interface.close()

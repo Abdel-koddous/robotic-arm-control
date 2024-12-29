@@ -57,12 +57,12 @@ if __name__ == "__main__":
 
     serial_interface.connect()
     # Example command to send to the Arduino
-    move_joint_command = "m10500"      
-    serial_interface.send_move_joint_command(move_joint_command)
+    move_joint_command = "m30"      
+    serial_interface.send_command(move_joint_command)
 
     time.sleep(2)
-    move_joint_command = "m100" 
-    serial_interface.send_move_joint_command(move_joint_command)
+    move_joint_command = "m31" 
+    serial_interface.send_command(move_joint_command)
 
     serial_interface.close()
 

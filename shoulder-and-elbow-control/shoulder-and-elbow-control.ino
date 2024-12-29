@@ -223,7 +223,7 @@ void loop() {
         break;
 
         case 3:
-          int servo_command = new_command_params[2];
+          int servo_command = new_command_params[3];
           if (servo_command == 0)
           {
             gripper_servo.write(0);
