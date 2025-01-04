@@ -13,5 +13,9 @@ Upcoming features:
 - Toggle switch button for unit selection (motor steps or angles).
 
 
+### How to run the application:
 
-
+```
+cd robotic-arm-control
+python robotic_arm_control_gui.py
+```
