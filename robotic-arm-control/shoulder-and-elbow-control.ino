@@ -2,15 +2,15 @@
 #include <Servo.h>  
 
 // Pin assignments
-const int elbow_stepPin = 2;
-const int elbow_dirPin = 3;
-const int shoudler_stepPin = 4;     // Connects to STEP on the driver
-const int shoulder_dirPin = 5;      // Connects to DIR on the driver
-const int base_stepPin = 6;
-const int base_dirPin = 7;
+const int elbow_stepPin = 4;
+const int elbow_dirPin = 5;
+const int shoudler_stepPin = 6;     // Connects to STEP on the driver
+const int shoulder_dirPin = 7;      // Connects to DIR on the driver
+const int base_stepPin = 12;
+const int base_dirPin = 13;
 
 const int enablePin = 5;   // Optional: Connects to ENABLE on the driver
-const int homeSwitchPin = 7;
+const int homeSwitchPin = 10;
 
 // Create an AccelStepper object in DRIVER mode
 AccelStepper elbow_stepper(AccelStepper::DRIVER, elbow_stepPin, elbow_dirPin);
@@ -45,7 +45,7 @@ void setup() {
   pinMode(enablePin, OUTPUT);
   digitalWrite(enablePin, LOW);    // LOW to enable, HIGH to disable
 
-  gripper_servo.attach(12); 
+  gripper_servo.attach(11); 
   // Set the initial target position
   // Serial.println("Shoulder Target Number Of steps = " + String(shoulder_max_position));
   /*shoulder_stepper.moveTo(shoulder_max_position);
