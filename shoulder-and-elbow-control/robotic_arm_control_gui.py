@@ -1,32 +1,49 @@
-from PyQt6.QtWidgets import QApplication, QWidget, QHBoxLayout, QSlider, QPushButton, QLabel, QVBoxLayout
+from PyQt6.QtWidgets import QApplication, QWidget, QHBoxLayout, QSlider, QPushButton, QLabel, QVBoxLayout, QLineEdit, QFormLayout
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QIcon
 from serial_interface_control import SerialInterface
 class RoboticArmControlApp(QWidget):
     def __init__(self):
         super().__init__()
         self.init_ui()
-        self.serial_interface = SerialInterface(port='COM5', baudrate=9600)
+        self.serial_interface = SerialInterface(port='COM6', baudrate=9600)
         self.serial_interface.connect()
 
     def create_joint_control(self, joint_name, joint_id, initial_value):
-        layout = QHBoxLayout()
+        # Create a horizontal layout for the joint control
+        joint_layout = QHBoxLayout()  
+        
+        # Create and add the label
         label = QLabel(f"{joint_name} Joint: {initial_value}")
-        layout.addWidget(label)
+        label.setMinimumWidth(100)  # Set minimum width for the label
+        joint_layout.addWidget(label)
 
+        # Create and add the slider
         slider = QSlider(Qt.Orientation.Horizontal)
         slider.setTickPosition(QSlider.TickPosition.TicksBelow)
         slider.setTickInterval(100)
         slider.setRange(0, 10000)
         slider.setValue(initial_value)
-        layout.addWidget(slider)
+        slider.setMinimumWidth(200)  # Set minimum width for the slider
+        joint_layout.addWidget(slider)
 
-        slider.valueChanged.connect(lambda value: self.update_label(label, joint_name, value))
+        # Create and add the input field
+        value_input = QLineEdit()  
+        value_input.setText(str(initial_value))  
+        value_input.setFixedWidth(100) # Set fixed width for the input field
+        joint_layout.addWidget(value_input)  
 
+        # Create and add the button
         button = QPushButton("Set Joint")
         button.clicked.connect(lambda: self.send_command(joint_id, slider.value()))
-        layout.addWidget(button)
+        button.setMinimumWidth(100)  # Set minimum width for the button
+        joint_layout.addWidget(button)  
 
-        return layout
+        slider.valueChanged.connect(lambda value: self.update_label(label, joint_name, value))
+        slider.valueChanged.connect(lambda value: value_input.setText(str(value)))  
+        value_input.textChanged.connect(lambda text: slider.setValue(int(text)) if text.isdigit() else None)  
+
+        return joint_layout  # Return the horizontal layout for the joint control
     
     def create_gripper_control(self):
         gripper_layout = QHBoxLayout()
@@ -42,7 +59,14 @@ class RoboticArmControlApp(QWidget):
         return gripper_layout
 
     def init_ui(self):
-        main_layout = QVBoxLayout()  # Main vertical layout
+        # Main vertical layout
+        main_layout = QVBoxLayout()  
+
+        # Set the window title
+        self.setWindowTitle("Robotic Arm Control Interface")
+        
+        # Set the window icon
+        self.setWindowIcon(QIcon("data/app_logo.png"))
 
         # Create joint controls
         main_layout.addLayout(self.create_joint_control("Base", 0, 0))
@@ -56,12 +80,13 @@ class RoboticArmControlApp(QWidget):
         label.setText(f"{joint_name} Joint: {value}")
 
     def send_command(self, joint_id, value):
-        command = f"m{joint_id}0{value}"  # Example command format
+        command = f"m{joint_id}0{value}"  # Command format for motor steps
         print(f"Sending command: {command}")
-        if joint_id == 3: # Gripper servo specific mgt
+        if joint_id == 3:  # Gripper servo specific mgt
             self.serial_interface.send_command(command)
         else:
             self.serial_interface.send_move_joint_command(command)
+
 
     def clean_up(self):
         self.serial_interface.close()
