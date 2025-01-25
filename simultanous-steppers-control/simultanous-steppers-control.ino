@@ -2,9 +2,12 @@
 
 // Define stepper motor connections and motor interface type
 #define motorInterfaceType 1
-AccelStepper stepper1(motorInterfaceType, 3, 2); // Base motor (1st joint)
-AccelStepper stepper2(motorInterfaceType, 5, 4); // Shoulder motor (2nd joint)
+int steppers_dirPin[3]  = {2, 4, 6};
+int steppers_stepPin[3] = {3, 5, 7};
 
+AccelStepper stepper1(motorInterfaceType, steppers_stepPin[0], steppers_dirPin[0]); // Base motor (1st joint)
+AccelStepper stepper2(motorInterfaceType, steppers_stepPin[1], steppers_dirPin[1]); // Shoulder motor (2nd joint)
+AccelStepper stepper3(motorInterfaceType, steppers_stepPin[2], steppers_dirPin[2]); // Elbow motor (3rd joint)
 
 void parseInputCommand(String command)
 {
@@ -19,6 +22,7 @@ void parseInputCommand(String command)
     Serial.println("Stop command received - Stopping all motors");
     stepper1.stop();
     stepper2.stop();
+    stepper3.stop();
   }
   else if (command.startsWith("m"))
   {
@@ -76,6 +80,8 @@ void processCommand(String command) {
       stepper1.moveTo(steps); // Move stepper 1
     } else if (motorId == 1) {
       stepper2.moveTo(steps); // Move stepper 2
+    } else if (motorId == 2) {
+      stepper3.moveTo(steps); // Move stepper 3
     }
   }
 }
@@ -104,10 +110,12 @@ void setup() {
   stepper1.setAcceleration(1000); // Set acceleration for stepper 1
   stepper2.setMaxSpeed(500); // Set maximum speed for stepper 2
   stepper2.setAcceleration(1000); // Set acceleration for stepper 2
+  stepper3.setMaxSpeed(500); // Set maximum speed for stepper 3
+  stepper3.setAcceleration(1000); // Set acceleration for stepper 3
 }
 
 // Array to store the state of the steppers
-bool stepperIsMoving[2] = {false, false};
+bool stepperIsMoving[3] = {false, false, false}; // Initialize all steppers to not moving
 
 void loop() {
   if (Serial.available() > 0) {
@@ -118,5 +126,6 @@ void loop() {
   {
     ManageStepperMovement(stepper1, 0, stepperIsMoving[0]); // Handle first stepper
     ManageStepperMovement(stepper2, 1, stepperIsMoving[1]); // Handle second stepper
+    ManageStepperMovement(stepper3, 2, stepperIsMoving[2]); // Handle third stepper
   }
 }
