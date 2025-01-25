@@ -32,8 +32,9 @@ class SerialInterface:
         if self.serial_connection and self.serial_connection.is_open:
             while self.serial_connection.in_waiting > 0:
                 output = self.serial_connection.readline().decode('utf-8').rstrip()
+                print(output)
                 # Loop until the stepper STARTED message is received
-                if "stepper STARTED" in output:
+                if "Stepper STARTED" in output:
                     break
                 time.sleep(0.1)
         return output
@@ -44,7 +45,7 @@ class SerialInterface:
         self.send_command(command)
         while True:
             output = self.read_output()
-            if "stepper STARTED" in output:
+            if "Stepper STARTED" in output:
                 print("Congrats! move joint command sent successfully :)")
                 success = True
                 break
@@ -53,16 +54,16 @@ class SerialInterface:
 
 if __name__ == "__main__":
 
-    serial_interface = SerialInterface(port='COM5', baudrate=9600)
+    serial_interface = SerialInterface(port='COM6', baudrate=9600)
 
     serial_interface.connect()
     # Example command to send to the Arduino
-    move_joint_command = "m30"      
-    serial_interface.send_command(move_joint_command)
+    move_joint_command = "m002000m101000m201500"      
+    serial_interface.send_move_joint_command(move_joint_command)
 
-    time.sleep(2)
-    move_joint_command = "m31" 
-    serial_interface.send_command(move_joint_command)
+    time.sleep(10)
+    move_joint_command = "m000" 
+    serial_interface.send_move_joint_command(move_joint_command)
 
     serial_interface.close()
 

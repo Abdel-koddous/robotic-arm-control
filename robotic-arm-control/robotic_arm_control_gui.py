@@ -8,6 +8,7 @@ class RoboticArmControlApp(QWidget):
         self.init_ui()
         self.serial_interface = SerialInterface(port='COM6', baudrate=9600)
         self.serial_interface.connect()
+        self.joint_values = [0, 0, 0]
 
     def create_joint_control(self, joint_name, joint_id, initial_value):
         # Create a horizontal layout for the joint control
@@ -41,23 +42,46 @@ class RoboticArmControlApp(QWidget):
 
         slider.valueChanged.connect(lambda value: self.update_label(label, joint_name, value))
         slider.valueChanged.connect(lambda value: value_input.setText(str(value)))  
+        slider.valueChanged.connect(lambda value: self.set_joint_value(joint_id, value))
         value_input.textChanged.connect(lambda text: slider.setValue(int(text)) if text.isdigit() else None)  
+        value_input.textChanged.connect(lambda text: self.set_joint_value(joint_id, int(text)))
 
         return joint_layout  # Return the horizontal layout for the joint control
     
+    def set_joint_value(self, joint_id, value):
+        self.joint_values[joint_id] = value
+    
+    def get_joint_value(self, joint_id):
+        return self.joint_values[joint_id]
     def create_gripper_control(self):
         gripper_layout = QHBoxLayout()
 
-        open_button = QPushButton("Open Gripper")
+        open_button = QPushButton("Open Gripper (Broken for now)")
         open_button.clicked.connect(lambda: self.send_command(3, 0))
         gripper_layout.addWidget(open_button)
 
-        close_button = QPushButton("Close Gripper")
+        close_button = QPushButton("Close Gripper (Broken for now)")
         close_button.clicked.connect(lambda: self.send_command(3, 1))
         gripper_layout.addWidget(close_button)
 
         return gripper_layout
 
+    def create_set_all_joints_control(self):
+        
+        control_all_joints_layout = QVBoxLayout()
+        
+        button = QPushButton("SET All Joints")
+        button.clicked.connect(lambda: self.send_move_all_joints_command())
+        button.setMinimumWidth(100)  # Set minimum width for the button
+        control_all_joints_layout.addWidget(button)
+        
+        stop_button = QPushButton("STOP All Steppers")
+        stop_button.clicked.connect(lambda: self.serial_interface.send_command("s"))
+        stop_button.setMinimumWidth(100)  # Set minimum width for the button
+        control_all_joints_layout.addWidget(stop_button)
+
+        return control_all_joints_layout
+    
     def init_ui(self):
         # Main vertical layout
         main_layout = QVBoxLayout()  
@@ -72,7 +96,12 @@ class RoboticArmControlApp(QWidget):
         main_layout.addLayout(self.create_joint_control("Base", 0, 0))
         main_layout.addLayout(self.create_joint_control("Shoulder", 1, 0))
         main_layout.addLayout(self.create_joint_control("Elbow", 2, 0))
+
+        main_layout.addLayout(self.create_set_all_joints_control())
+
         main_layout.addLayout(self.create_gripper_control())
+
+
 
         self.setLayout(main_layout)  # Set the main layout
 
@@ -86,6 +115,10 @@ class RoboticArmControlApp(QWidget):
             self.serial_interface.send_command(command)
         else:
             self.serial_interface.send_move_joint_command(command)
+    
+    def send_move_all_joints_command(self):
+        command = f"m00{self.joint_values[0]}m10{self.joint_values[1]}m20{self.joint_values[2]}"
+        self.serial_interface.send_move_joint_command(command)
 
 
     def clean_up(self):

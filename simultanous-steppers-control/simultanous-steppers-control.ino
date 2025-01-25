@@ -83,6 +83,7 @@ void processCommand(String command) {
     } else if (motorId == 2) {
       stepper3.moveTo(steps); // Move stepper 3
     }
+    Serial.println("Stepper STARTED moving...");
   }
 }
 
