@@ -80,6 +80,24 @@ void processCommand(String command) {
   }
 }
 
+void ManageStepperMovement(AccelStepper &stepper, int stepperIndex, bool &stepperIsMovingStatus) {
+  /*
+  * This function is used to manage the movement of the steppers and report their status.
+  * When stepper reaches the destination, it reports the current position of the stepper.
+  * param : stepper : the stepper reference to manage 
+  * param : stepperIndex : the index of the stepper in the array
+  */  
+  if (stepper.distanceToGo() != 0) {
+      stepper.run();
+      stepperIsMovingStatus = true;
+  } else if (stepper.distanceToGo() == 0 && stepperIsMovingStatus == true) {
+      // Stepper has reached the destination
+      Serial.println("Stepper " + String(stepperIndex + 1) + " is at the destination: " + String(stepper.currentPosition()));
+      // Reset the stepper movement state to not moving
+      stepperIsMovingStatus = false; 
+  }
+}
+
 void setup() {
   Serial.begin(9600); // Start serial communication
   stepper1.setMaxSpeed(500); // Set maximum speed for stepper 1
@@ -98,27 +116,7 @@ void loop() {
   }
   else
   {
-    // Move both motors simultaneously
-    if (stepper1.distanceToGo() != 0)
-    {
-      stepper1.run();
-      stepperIsMoving[0] = true;
-    }
-    else if (stepperIsMoving[0] == true)
-    {
-      Serial.println("Stepper 1 is at the destination :" + String(stepper1.currentPosition()));
-      stepperIsMoving[0] = false;
-    }
-    
-    if (stepper2.distanceToGo() != 0)
-    {
-      stepper2.run();
-      stepperIsMoving[1] = true;
-    }
-    else if (stepperIsMoving[1] == true)
-    {
-      Serial.println("Stepper 2 is at the destination :" + String(stepper2.currentPosition()));
-      stepperIsMoving[1] = false;
-    }
+    ManageStepperMovement(stepper1, 0, stepperIsMoving[0]); // Handle first stepper
+    ManageStepperMovement(stepper2, 1, stepperIsMoving[1]); // Handle second stepper
   }
 }
