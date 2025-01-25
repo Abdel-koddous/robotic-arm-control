@@ -16,7 +16,9 @@ void setup() {
 void loop() {
   if (Serial.available() > 0) {
     String command = Serial.readStringUntil('\n'); // Read command until newline
-    processCommand(command); // Process the command
+    
+    //processCommand(command); // Process the command
+    parseMultipleMoveCommands(command);
   }
   else
   {
@@ -25,21 +27,47 @@ void loop() {
   }
 }
 
+void parseMultipleMoveCommands(String command)
+{
+    /*
+    This function is used to parse the move command of multiple motors and extract the sub-commands
+    Example : m002000m101000m201500 input will be parsed into 3 sub-commands : m002000, m101000, m201500
+    */
+    Serial.println("================================================");
+    Serial.println("Parsing input command: " + command);
+    // Split the command into individual sub-commands
+    int separatorIndex = 0;
+    while (separatorIndex < command.length()) {
+        int nextSeparatorIndex = command.indexOf('m', separatorIndex + 1);
+        String subCommand;
+        
+        if (nextSeparatorIndex == -1) {
+            subCommand = command.substring(separatorIndex); // Get the last sub-command
+            separatorIndex = command.length(); // Exit the loop
+        } else {
+            subCommand = command.substring(separatorIndex, nextSeparatorIndex); // Get the sub-command
+            separatorIndex = nextSeparatorIndex; // Move to the next 'm'
+        }
+
+        Serial.println("Sub-command received: " + subCommand);
+
+        processCommand(subCommand);
+    
+    }
+}
 
 void processCommand(String command) {
   // Example command format: m002000 (1st joint, clockwise, 2000 steps)
   if (command.startsWith("m")) {
-    Serial.println("command received : " + command);
-    int separatorIndex = command.indexOf('m');
-    while (separatorIndex != -1) {
-        String subCommand = command.substring(separatorIndex); // Get the part starting with 'm'
-        Serial.println("Sub-command received: " + subCommand);
-        separatorIndex = command.indexOf('m', separatorIndex + 1); // Find the next 'm'
-    }
-    
+
+    Serial.println("Processing command: " + command);
     int motorId = command.charAt(1) - '0'; // Get motor ID (0 or 1)
     int direction = command.charAt(2) - '0'; // Get direction (0 = clockwise, 1 = counter-clockwise)
     int steps = command.substring(3).toInt(); // Get number of steps
+
+    Serial.println("Motor ID: " + String(motorId));
+    Serial.println("Direction: " + String(direction));
+    Serial.println("Steps: " + String(steps));
 
     // Adjust steps based on direction
     //if (direction == 1) {
@@ -54,13 +82,10 @@ void processCommand(String command) {
     }
 
     // Move both motors simultaneously
-    if (stepper1.distanceToGo() != 0 || stepper2.distanceToGo() != 0) {
+    if (stepper1.distanceToGo() != 0 || stepper2.distanceToGo() != 0)
+    {
       stepper1.run();
       stepper2.run();
     }
-  }
-  else if (command.startsWith("s"))
-  {
-    Serial.println("Stop command received");
   }
 }
