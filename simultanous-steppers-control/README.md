@@ -11,7 +11,7 @@ For example, the command `m002000m101000m201500` will:
   
 Make sure to monitor the serial output for feedback on the commands being processed and the positions of the motors.
 
-__Note 1__: For now only 3 steppers are supported.
+__Note 1__: For now up to 5 steppers are supported.
 
 __Note 2__: you can also use the `m` command to move a single motor.
 

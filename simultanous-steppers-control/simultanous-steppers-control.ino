@@ -2,54 +2,38 @@
 
 // Define stepper motor connections and motor interface type
 #define motorInterfaceType 1
-int steppers_dirPin[3]  = {2, 4, 6};
-int steppers_stepPin[3] = {3, 5, 7};
+int steppers_dirPin[5]  = {2, 4, 6, 8, 10};
+int steppers_stepPin[5] = {3, 5, 7, 9, 11};
 
-AccelStepper stepper1(motorInterfaceType, steppers_stepPin[0], steppers_dirPin[0]); // Base motor (1st joint)
-AccelStepper stepper2(motorInterfaceType, steppers_stepPin[1], steppers_dirPin[1]); // Shoulder motor (2nd joint)
-AccelStepper stepper3(motorInterfaceType, steppers_stepPin[2], steppers_dirPin[2]); // Elbow motor (3rd joint)
+AccelStepper stepper1(motorInterfaceType, steppers_stepPin[0], steppers_dirPin[0]); // Base motor
+AccelStepper stepper2(motorInterfaceType, steppers_stepPin[1], steppers_dirPin[1]); // Shoulder motor
+AccelStepper stepper3(motorInterfaceType, steppers_stepPin[2], steppers_dirPin[2]); // Elbow motor
+AccelStepper stepper4(motorInterfaceType, steppers_stepPin[3], steppers_dirPin[3]); // Wrist motor
+AccelStepper stepper5(motorInterfaceType, steppers_stepPin[4], steppers_dirPin[4]); // Hand motor
 
-void parseInputCommand(String command)
-{
-  /*
-  * This function is used to parse the input command and execute the appropriate actions for the stepper motors. 
-  * Current supported commands:
-  * - 's': Stop command. Stops all motors immediately.
-  * - 'm': Move command. Initiates movement for specified motors based on the sub-commands.
-  */
-  if (command.startsWith("s"))
-  {
+void parseInputCommand(String command) {
+  if (command.startsWith("s")) {
     Serial.println("Stop command received - Stopping all motors");
-    stepper1.stop();
-    stepper2.stop();
-    stepper3.stop();
-  }
-  else if (command.startsWith("m"))
-  {
+    stepper1.stop(); stepper2.stop(); stepper3.stop(); stepper4.stop(); stepper5.stop();
+  } else if (command.startsWith("m")) {
     parseMultipleMoveCommands(command);
   }
 }
 
-void parseMultipleMoveCommands(String command)
-{
-    /*
-    * This function is used to parse the move command of multiple motors and extract the sub-commands
-    * Example : m002000m101000m201500 input will be split into 3 sub-commands : m002000, m101000, m201500
-    */
+void parseMultipleMoveCommands(String command) {
     Serial.println("================================================");
     Serial.println("Parsing input command: " + command);
-    // Split the command into individual sub-commands
     int separatorIndex = 0;
     while (separatorIndex < command.length()) {
         int nextSeparatorIndex = command.indexOf('m', separatorIndex + 1);
         String subCommand;
         
         if (nextSeparatorIndex == -1) {
-            subCommand = command.substring(separatorIndex); // Get the last sub-command
-            separatorIndex = command.length(); // Exit the loop
+            subCommand = command.substring(separatorIndex);
+            separatorIndex = command.length();
         } else {
-            subCommand = command.substring(separatorIndex, nextSeparatorIndex); // Get the sub-command
-            separatorIndex = nextSeparatorIndex; // Move to the next 'm'
+            subCommand = command.substring(separatorIndex, nextSeparatorIndex);
+            separatorIndex = nextSeparatorIndex;
         }
         Serial.println("Sub-command received: " + subCommand);
         processCommand(subCommand);
@@ -57,76 +41,61 @@ void parseMultipleMoveCommands(String command)
 }
 
 void processCommand(String command) {
-  
-  /* 
-  * This is a non-blocking function to process the steppers move command 
-  * Can be used to move multiple motors simultaneously 
-  * Example command format: m002000 (1st joint, clockwise, 2000 steps)
-  * Example command format: m101000 (2nd joint, clockwise, 1000 steps)
-  */
-
   if (command.startsWith("m")) {
     Serial.println("Processing command: " + command);
-    int motorId = command.charAt(1) - '0'; // Get motor ID (0 or 1)
-    int direction = command.charAt(2) - '0'; // Get direction (0 = clockwise, 1 = counter-clockwise)
-    int steps = command.substring(3).toInt(); // Get number of steps
+    int motorId = command.charAt(1) - '0';
+    int direction = command.charAt(2) - '0';
+    int steps = command.substring(3).toInt();
 
     Serial.println("Motor ID: " + String(motorId));
     Serial.println("Direction: " + String(direction));
     Serial.println("Steps: " + String(steps));
 
-    // Move the appropriate motor
     if (motorId == 0) {
-      stepper1.moveTo(steps); // Move stepper 1
+      stepper1.moveTo(steps);
     } else if (motorId == 1) {
-      stepper2.moveTo(steps); // Move stepper 2
+      stepper2.moveTo(steps);
     } else if (motorId == 2) {
-      stepper3.moveTo(steps); // Move stepper 3
+      stepper3.moveTo(steps);
+    } else if (motorId == 3) {
+      stepper4.moveTo(steps);
+    } else if (motorId == 4) {
+      stepper5.moveTo(steps);
     }
     Serial.println("Stepper STARTED moving...");
   }
 }
 
 void ManageStepperMovement(AccelStepper &stepper, int stepperIndex, bool &stepperIsMovingStatus) {
-  /*
-  * This function is used to manage the movement of the steppers and report their status.
-  * When stepper reaches the destination, it reports the current position of the stepper.
-  * param : stepper : the stepper reference to manage 
-  * param : stepperIndex : the index of the stepper in the array
-  */  
   if (stepper.distanceToGo() != 0) {
       stepper.run();
       stepperIsMovingStatus = true;
   } else if (stepper.distanceToGo() == 0 && stepperIsMovingStatus == true) {
-      // Stepper has reached the destination
       Serial.println("Stepper " + String(stepperIndex + 1) + " is at the destination: " + String(stepper.currentPosition()));
-      // Reset the stepper movement state to not moving
       stepperIsMovingStatus = false; 
   }
 }
 
 void setup() {
-  Serial.begin(9600); // Start serial communication
-  stepper1.setMaxSpeed(500); // Set maximum speed for stepper 1
-  stepper1.setAcceleration(1000); // Set acceleration for stepper 1
-  stepper2.setMaxSpeed(500); // Set maximum speed for stepper 2
-  stepper2.setAcceleration(1000); // Set acceleration for stepper 2
-  stepper3.setMaxSpeed(500); // Set maximum speed for stepper 3
-  stepper3.setAcceleration(1000); // Set acceleration for stepper 3
+  Serial.begin(9600);
+  stepper1.setMaxSpeed(500); stepper1.setAcceleration(1000);
+  stepper2.setMaxSpeed(500); stepper2.setAcceleration(1000);
+  stepper3.setMaxSpeed(500); stepper3.setAcceleration(1000);
+  stepper4.setMaxSpeed(500); stepper4.setAcceleration(1000);
+  stepper5.setMaxSpeed(500); stepper5.setAcceleration(1000);
 }
 
-// Array to store the state of the steppers
-bool stepperIsMoving[3] = {false, false, false}; // Initialize all steppers to not moving
+bool stepperIsMoving[5] = {false, false, false, false, false};
 
 void loop() {
   if (Serial.available() > 0) {
-    String command = Serial.readStringUntil('\n'); // Read command until newline    
-    parseInputCommand(command); // Process the command
-  }
-  else
-  {
-    ManageStepperMovement(stepper1, 0, stepperIsMoving[0]); // Handle first stepper
-    ManageStepperMovement(stepper2, 1, stepperIsMoving[1]); // Handle second stepper
-    ManageStepperMovement(stepper3, 2, stepperIsMoving[2]); // Handle third stepper
+    String command = Serial.readStringUntil('\n');
+    parseInputCommand(command);
+  } else {
+    ManageStepperMovement(stepper1, 0, stepperIsMoving[0]);
+    ManageStepperMovement(stepper2, 1, stepperIsMoving[1]);
+    ManageStepperMovement(stepper3, 2, stepperIsMoving[2]);
+    ManageStepperMovement(stepper4, 3, stepperIsMoving[3]);
+    ManageStepperMovement(stepper5, 4, stepperIsMoving[4]);
   }
 }
