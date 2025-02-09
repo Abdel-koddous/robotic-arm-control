@@ -96,3 +96,5 @@ class SequenceManager:
         """Stop the sequence playback"""
         self.is_playing = False
         print("Sequence playback stopped") 
+
+
