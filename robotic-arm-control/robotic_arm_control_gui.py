@@ -90,36 +90,40 @@ class RoboticArmControlApp(QWidget):
 
     def home_all_joints(self):
         """Reset all joints to home position (0)"""
-        # Store references to all joint layouts
-        joint_layouts = []
-        
-        # Get all layouts from the main layout
-        main_layout = self.layout()
-        for i in range(main_layout.count()):
-            item = main_layout.itemAt(i)
-            if isinstance(item, QHBoxLayout):
-                # Check if this is a joint control layout (has 4 widgets: label, slider, input, button)
-                if item.count() == 4:
-                    joint_layouts.append(item)
-        
-        # Reset each joint's controls
-        for joint_id, layout in enumerate(joint_layouts):
-            # Reset joint value in memory
+        # First, reset all joint values in memory
+        for joint_id in range(len(self.joint_values)):
             self.joint_values[joint_id] = 0
-            
-            # Update controls
-            for i in range(layout.count()):
-                widget = layout.itemAt(i).widget()
-                if isinstance(widget, QLabel):
-                    # Update label
-                    joint_name = ["Base", "Shoulder", "Elbow", "Wrist", "Hand"][joint_id]
-                    widget.setText(f"{joint_name} Joint: 0")
-                elif isinstance(widget, QSlider):
-                    # Update slider
-                    widget.setValue(0)
-                elif isinstance(widget, QLineEdit):
-                    # Update input field
-                    widget.setText("0")
+        
+        # Get the joints group from main layout
+        main_layout = self.layout()
+        joints_group = None
+        
+        # Find the joints group
+        for i in range(main_layout.count()):
+            widget = main_layout.itemAt(i).widget()
+            if isinstance(widget, QGroupBox) and widget.title() == "Joint Controls":
+                joints_group = widget
+                break
+        
+        if joints_group:
+            joints_layout = joints_group.layout()
+            # Update each joint's controls
+            for joint_id in range(joints_layout.count()):
+                joint_layout = joints_layout.itemAt(joint_id)
+                if joint_layout:
+                    # Update each widget in the joint layout
+                    for i in range(joint_layout.count()):
+                        widget = joint_layout.itemAt(i).widget()
+                        if isinstance(widget, QLabel):
+                            # Update label
+                            joint_name = ["Base", "Shoulder", "Elbow", "Wrist", "Hand"][joint_id]
+                            widget.setText(f"{joint_name} Joint: 0")
+                        elif isinstance(widget, QSlider):
+                            # Update slider
+                            widget.setValue(0)
+                        elif isinstance(widget, QLineEdit):
+                            # Update input field
+                            widget.setText("0")
         
         # Send command to move all joints to 0
         self.send_move_all_joints_command()
