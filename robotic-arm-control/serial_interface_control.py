@@ -34,7 +34,7 @@ class SerialInterface:
                 output = self.serial_connection.readline().decode('utf-8').rstrip()
                 print(output)
                 # Loop until the stepper STARTED message is received
-                if "Stepper STARTED" in output:
+                if "STARTED moving..." in output:
                     break
                 time.sleep(0.1)
         return output
@@ -45,7 +45,7 @@ class SerialInterface:
         self.send_command(command)
         while True:
             output = self.read_output()
-            if "Stepper STARTED" in output:
+            if "STARTED moving..." in output:
                 print("Congrats! move joint command sent successfully :)")
                 success = True
                 break
