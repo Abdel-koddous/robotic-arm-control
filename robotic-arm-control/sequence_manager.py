@@ -11,7 +11,7 @@ class SequenceManager:
     def __init__(self, serial_interface):
         self.serial_interface = serial_interface
         self.poses = []  # List to store poses
-        self.interval = 2.0  # Default interval in seconds between poses
+        self.interval = 10.0  # Default interval in seconds between poses
         self.is_playing = False
         self.play_direction = 1  # 1 for forward, -1 for backward
     

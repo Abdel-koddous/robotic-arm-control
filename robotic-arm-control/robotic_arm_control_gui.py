@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QApplication, QWidget, QHBoxLayout, QSlider, QPushButton, QLabel, QVBoxLayout, QLineEdit, QFormLayout, QListWidget
+from PyQt6.QtWidgets import QApplication, QWidget, QHBoxLayout, QSlider, QPushButton, QLabel, QVBoxLayout, QLineEdit, QFormLayout, QListWidget, QGroupBox
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon
 from serial_interface_control import SerialInterface
@@ -35,7 +35,7 @@ class RoboticArmControlApp(QWidget):
         value_input.setFixedWidth(100)
         joint_layout.addWidget(value_input)  
 
-        button = QPushButton("Set Joint")
+        button = QPushButton("Set")
         button.clicked.connect(lambda: self.send_command(joint_id, slider.value()))
         button.setMinimumWidth(100)
         joint_layout.addWidget(button)  
@@ -76,7 +76,7 @@ class RoboticArmControlApp(QWidget):
         control_all_joints_layout.addWidget(button)
 
         # Add Home All Joints button
-        home_button = QPushButton("Home All Joints")
+        home_button = QPushButton("HOME All Joints")
         home_button.clicked.connect(self.home_all_joints)
         home_button.setMinimumWidth(100)
         control_all_joints_layout.addWidget(home_button)
@@ -129,11 +129,6 @@ class RoboticArmControlApp(QWidget):
         """Create the sequence control panel"""
         sequence_layout = QVBoxLayout()
         
-        # Title for the section
-        title = QLabel("Sequence Control")
-        title.setStyleSheet("font-weight: bold; font-size: 14px;")
-        sequence_layout.addWidget(title)
-        
         # Buttons layout
         buttons_layout = QHBoxLayout()
         
@@ -182,23 +177,69 @@ class RoboticArmControlApp(QWidget):
         return sequence_layout
 
     def init_ui(self):
-        main_layout = QVBoxLayout()  
-        self.setWindowTitle("Robotic Arm Control Interface")
-        self.setWindowIcon(QIcon("data/app_logo.png"))
-
-        # Create joint controls for all 5 joints
-        main_layout.addLayout(self.create_joint_control("Base", 0, 0))
-        main_layout.addLayout(self.create_joint_control("Shoulder", 1, 0))
-        main_layout.addLayout(self.create_joint_control("Elbow", 2, 0))
-        main_layout.addLayout(self.create_joint_control("Wrist", 3, 0))
-        main_layout.addLayout(self.create_joint_control("Hand", 4, 0))
-
-        main_layout.addLayout(self.create_set_all_joints_control())
-        main_layout.addLayout(self.create_gripper_control())
+        main_layout = QVBoxLayout()
+        main_layout.setSpacing(15)  # Increase spacing between sections
         
-        # Add sequence control section
-        main_layout.addLayout(self.create_sequence_control())
+        # Joint Controls Group
+        joints_group = QGroupBox("Joint Controls")
+        joints_group.setStyleSheet("""
+            QGroupBox {
+                border: 2px solid #555555;
+                border-radius: 6px;
+                margin-top: 6px;
+                padding-top: 10px;
+                color: white;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px;
+            }
+        """)
+        joints_layout = QVBoxLayout()
+        joints_layout.addLayout(self.create_joint_control("Base", 0, 0))
+        joints_layout.addLayout(self.create_joint_control("Shoulder", 1, 0))
+        joints_layout.addLayout(self.create_joint_control("Elbow", 2, 0))
+        joints_layout.addLayout(self.create_joint_control("Wrist", 3, 0))
+        joints_layout.addLayout(self.create_joint_control("Hand", 4, 0))
+        joints_group.setLayout(joints_layout)
+        main_layout.addWidget(joints_group)
 
+        # Global Controls Group
+        global_controls_group = QGroupBox("Global Controls")
+        global_controls_group.setStyleSheet("""
+            QGroupBox {
+                border: 2px solid #555555;
+                border-radius: 6px;
+                margin-top: 6px;
+                padding-top: 10px;
+                color: white;
+            }
+        """)
+        global_layout = QVBoxLayout()
+        global_layout.addLayout(self.create_set_all_joints_control())
+        global_layout.addLayout(self.create_gripper_control())
+        global_controls_group.setLayout(global_layout)
+        main_layout.addWidget(global_controls_group)
+
+        # Sequence Control Group
+        sequence_group = QGroupBox("Sequence Control")
+        sequence_group.setStyleSheet("""
+            QGroupBox {
+                border: 2px solid #555555;
+                border-radius: 6px;
+                margin-top: 6px;
+                padding-top: 10px;
+                color: white;
+            }
+        """)
+        sequence_layout = QVBoxLayout()
+        sequence_layout.addLayout(self.create_sequence_control())
+        sequence_group.setLayout(sequence_layout)
+        main_layout.addWidget(sequence_group)
+
+        # Add some padding around the entire window
+        main_layout.setContentsMargins(10, 10, 10, 10)
         self.setLayout(main_layout)
 
     def update_label(self, label, joint_name, value):
@@ -257,6 +298,7 @@ class RoboticArmControlApp(QWidget):
 
 if __name__ == "__main__":
     app = QApplication([])
+    app.setApplicationName("MOGA Robotics | 5DOF Arm Control")  # Set the application name
     window = RoboticArmControlApp(port='COM6')
     window.show()
     app.exec()
