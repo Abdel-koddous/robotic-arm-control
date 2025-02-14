@@ -57,11 +57,11 @@ class RoboticArmControlApp(QWidget):
     def create_gripper_control(self):
         gripper_layout = QHBoxLayout()
 
-        open_button = QPushButton("Open Gripper (Broken for now)")
+        open_button = QPushButton("Open Gripper (Disabled for now)")
         open_button.clicked.connect(lambda: self.send_command(3, 0))
         gripper_layout.addWidget(open_button)
 
-        close_button = QPushButton("Close Gripper (Broken for now)")
+        close_button = QPushButton("Close Gripper (Disabled for now)")
         close_button.clicked.connect(lambda: self.send_command(3, 1))
         gripper_layout.addWidget(close_button)
 
@@ -74,6 +74,12 @@ class RoboticArmControlApp(QWidget):
         button.clicked.connect(lambda: self.send_move_all_joints_command())
         button.setMinimumWidth(100)
         control_all_joints_layout.addWidget(button)
+
+        # Add Home All Joints button
+        home_button = QPushButton("Home All Joints")
+        home_button.clicked.connect(self.home_all_joints)
+        home_button.setMinimumWidth(100)
+        control_all_joints_layout.addWidget(home_button)
         
         stop_button = QPushButton("STOP All Steppers")
         stop_button.clicked.connect(lambda: self.serial_interface.send_command("s"))
@@ -81,6 +87,43 @@ class RoboticArmControlApp(QWidget):
         control_all_joints_layout.addWidget(stop_button)
 
         return control_all_joints_layout
+
+    def home_all_joints(self):
+        """Reset all joints to home position (0)"""
+        # Store references to all joint layouts
+        joint_layouts = []
+        
+        # Get all layouts from the main layout
+        main_layout = self.layout()
+        for i in range(main_layout.count()):
+            item = main_layout.itemAt(i)
+            if isinstance(item, QHBoxLayout):
+                # Check if this is a joint control layout (has 4 widgets: label, slider, input, button)
+                if item.count() == 4:
+                    joint_layouts.append(item)
+        
+        # Reset each joint's controls
+        for joint_id, layout in enumerate(joint_layouts):
+            # Reset joint value in memory
+            self.joint_values[joint_id] = 0
+            
+            # Update controls
+            for i in range(layout.count()):
+                widget = layout.itemAt(i).widget()
+                if isinstance(widget, QLabel):
+                    # Update label
+                    joint_name = ["Base", "Shoulder", "Elbow", "Wrist", "Hand"][joint_id]
+                    widget.setText(f"{joint_name} Joint: 0")
+                elif isinstance(widget, QSlider):
+                    # Update slider
+                    widget.setValue(0)
+                elif isinstance(widget, QLineEdit):
+                    # Update input field
+                    widget.setText("0")
+        
+        # Send command to move all joints to 0
+        self.send_move_all_joints_command()
+        print("All joints homed to 0 position")
     
     def create_sequence_control(self):
         """Create the sequence control panel"""
