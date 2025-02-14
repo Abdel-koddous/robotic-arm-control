@@ -43,9 +43,9 @@ class RoboticArmControlApp(QWidget):
         slider.valueChanged.connect(lambda value: self.update_label(label, joint_name, value))
         slider.valueChanged.connect(lambda value: value_input.setText(str(value)))  
         slider.valueChanged.connect(lambda value: self.set_joint_value(joint_id, value))
-        value_input.textChanged.connect(lambda text: slider.setValue(int(text)) if text.isdigit() else None)  
-        value_input.textChanged.connect(lambda text: self.set_joint_value(joint_id, int(text)))
-
+        value_input.textChanged.connect(lambda text: slider.setValue(int(text)) if text.isdigit() else slider.setValue(0))
+        value_input.textChanged.connect(lambda text: self.set_joint_value(joint_id, int(text)) if text.isdigit() else self.set_joint_value(joint_id, 0))
+        
         return joint_layout  
     
     def set_joint_value(self, joint_id, value):
