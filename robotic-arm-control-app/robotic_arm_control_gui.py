@@ -1,15 +1,13 @@
 from PyQt6.QtWidgets import QApplication, QWidget, QHBoxLayout, QSlider, QPushButton, QLabel, QVBoxLayout, QLineEdit, QFormLayout, QListWidget, QGroupBox
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QIcon
 from serial_interface_control import SerialInterface
 from sequence_manager import SequenceManager
 import threading
 
 class RoboticArmControlApp(QWidget):
-    def __init__(self, port='COM5'):
+    def __init__(self):
         super().__init__()
-        self.serial_interface = SerialInterface(port, baudrate=9600)
-        #self.serial_interface.connect()
+        self.serial_interface = SerialInterface()
         self.joint_values = [0, 0, 0, 0, 0]  # Updated for 5 joints
         self.sequence_manager = SequenceManager(self.serial_interface)
         self.sequence_thread = None
@@ -366,7 +364,7 @@ class RoboticArmControlApp(QWidget):
 if __name__ == "__main__":
     app = QApplication([])
     app.setApplicationName("MOGA Robotics | 5DOF Arm Control")  # Set the application name
-    window = RoboticArmControlApp(port='COM6')
+    window = RoboticArmControlApp()
     window.show()
     app.exec()
 
