@@ -11,7 +11,7 @@ class SequenceManager:
     def __init__(self, serial_interface):
         self.serial_interface = serial_interface
         self.poses = []  # List to store poses
-        self.interval = 2.0  # Default interval in seconds between poses
+        self.interval = 10.0  # Default interval in seconds between poses
         self.is_playing = False
         self.play_direction = 1  # 1 for forward, -1 for backward
     
@@ -49,6 +49,11 @@ class SequenceManager:
     def execute_pose(self, pose):
         """Execute a single pose"""
         command = "".join([f"m{i}0{val}" for i, val in enumerate(pose.joint_values)])
+        print(f"Executing command: {command}")
+
+        if not self.serial_interface.serial_connection.is_open:
+            self.serial_interface.connect()
+        
         return self.serial_interface.send_move_joint_command(command)
     
     def play_sequence(self, back_and_forth=True):

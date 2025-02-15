@@ -1,15 +1,13 @@
-from PyQt6.QtWidgets import QApplication, QWidget, QHBoxLayout, QSlider, QPushButton, QLabel, QVBoxLayout, QLineEdit, QFormLayout, QListWidget
+from PyQt6.QtWidgets import QApplication, QWidget, QHBoxLayout, QSlider, QPushButton, QLabel, QVBoxLayout, QLineEdit, QFormLayout, QListWidget, QGroupBox
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QIcon
 from serial_interface_control import SerialInterface
 from sequence_manager import SequenceManager
 import threading
 
 class RoboticArmControlApp(QWidget):
-    def __init__(self, port='COM5'):
+    def __init__(self):
         super().__init__()
-        self.serial_interface = SerialInterface(port, baudrate=9600)
-        self.serial_interface.connect()
+        self.serial_interface = SerialInterface()
         self.joint_values = [0, 0, 0, 0, 0]  # Updated for 5 joints
         self.sequence_manager = SequenceManager(self.serial_interface)
         self.sequence_thread = None
@@ -35,7 +33,7 @@ class RoboticArmControlApp(QWidget):
         value_input.setFixedWidth(100)
         joint_layout.addWidget(value_input)  
 
-        button = QPushButton("Set Joint")
+        button = QPushButton("Set")
         button.clicked.connect(lambda: self.send_command(joint_id, slider.value()))
         button.setMinimumWidth(100)
         joint_layout.addWidget(button)  
@@ -76,7 +74,7 @@ class RoboticArmControlApp(QWidget):
         control_all_joints_layout.addWidget(button)
 
         # Add Home All Joints button
-        home_button = QPushButton("Home All Joints")
+        home_button = QPushButton("HOME All Joints")
         home_button.clicked.connect(self.home_all_joints)
         home_button.setMinimumWidth(100)
         control_all_joints_layout.addWidget(home_button)
@@ -90,36 +88,40 @@ class RoboticArmControlApp(QWidget):
 
     def home_all_joints(self):
         """Reset all joints to home position (0)"""
-        # Store references to all joint layouts
-        joint_layouts = []
-        
-        # Get all layouts from the main layout
-        main_layout = self.layout()
-        for i in range(main_layout.count()):
-            item = main_layout.itemAt(i)
-            if isinstance(item, QHBoxLayout):
-                # Check if this is a joint control layout (has 4 widgets: label, slider, input, button)
-                if item.count() == 4:
-                    joint_layouts.append(item)
-        
-        # Reset each joint's controls
-        for joint_id, layout in enumerate(joint_layouts):
-            # Reset joint value in memory
+        # First, reset all joint values in memory
+        for joint_id in range(len(self.joint_values)):
             self.joint_values[joint_id] = 0
-            
-            # Update controls
-            for i in range(layout.count()):
-                widget = layout.itemAt(i).widget()
-                if isinstance(widget, QLabel):
-                    # Update label
-                    joint_name = ["Base", "Shoulder", "Elbow", "Wrist", "Hand"][joint_id]
-                    widget.setText(f"{joint_name} Joint: 0")
-                elif isinstance(widget, QSlider):
-                    # Update slider
-                    widget.setValue(0)
-                elif isinstance(widget, QLineEdit):
-                    # Update input field
-                    widget.setText("0")
+        
+        # Get the joints group from main layout
+        main_layout = self.layout()
+        joints_group = None
+        
+        # Find the joints group
+        for i in range(main_layout.count()):
+            widget = main_layout.itemAt(i).widget()
+            if isinstance(widget, QGroupBox) and widget.title() == "Joint Controls":
+                joints_group = widget
+                break
+        
+        if joints_group:
+            joints_layout = joints_group.layout()
+            # Update each joint's controls
+            for joint_id in range(joints_layout.count()):
+                joint_layout = joints_layout.itemAt(joint_id)
+                if joint_layout:
+                    # Update each widget in the joint layout
+                    for i in range(joint_layout.count()):
+                        widget = joint_layout.itemAt(i).widget()
+                        if isinstance(widget, QLabel):
+                            # Update label
+                            joint_name = ["Base", "Shoulder", "Elbow", "Wrist", "Hand"][joint_id]
+                            widget.setText(f"{joint_name} Joint: 0")
+                        elif isinstance(widget, QSlider):
+                            # Update slider
+                            widget.setValue(0)
+                        elif isinstance(widget, QLineEdit):
+                            # Update input field
+                            widget.setText("0")
         
         # Send command to move all joints to 0
         self.send_move_all_joints_command()
@@ -128,11 +130,6 @@ class RoboticArmControlApp(QWidget):
     def create_sequence_control(self):
         """Create the sequence control panel"""
         sequence_layout = QVBoxLayout()
-        
-        # Title for the section
-        title = QLabel("Sequence Control")
-        title.setStyleSheet("font-weight: bold; font-size: 14px;")
-        sequence_layout.addWidget(title)
         
         # Buttons layout
         buttons_layout = QHBoxLayout()
@@ -181,24 +178,133 @@ class RoboticArmControlApp(QWidget):
         
         return sequence_layout
 
-    def init_ui(self):
-        main_layout = QVBoxLayout()  
-        self.setWindowTitle("Robotic Arm Control Interface")
-        self.setWindowIcon(QIcon("data/app_logo.png"))
-
-        # Create joint controls for all 5 joints
-        main_layout.addLayout(self.create_joint_control("Base", 0, 0))
-        main_layout.addLayout(self.create_joint_control("Shoulder", 1, 0))
-        main_layout.addLayout(self.create_joint_control("Elbow", 2, 0))
-        main_layout.addLayout(self.create_joint_control("Wrist", 3, 0))
-        main_layout.addLayout(self.create_joint_control("Hand", 4, 0))
-
-        main_layout.addLayout(self.create_set_all_joints_control())
-        main_layout.addLayout(self.create_gripper_control())
+    def create_connection_control(self):
+        """Create the connection control panel"""
+        connection_layout = QHBoxLayout()
         
-        # Add sequence control section
-        main_layout.addLayout(self.create_sequence_control())
+        # Port input
+        port_label = QLabel("Arduino COM Port")
+        self.port_input = QLineEdit()
+        self.port_input.setText("COM6")  # Default port
+        self.port_input.setFixedWidth(100)
+        
+        # Connect button
+        self.connect_button = QPushButton("Connect")
+        self.connect_button.clicked.connect(self.toggle_connection)
+        
+        # Status label
+        self.connection_status = QLabel("Not Connected")
+        self.connection_status.setStyleSheet("color: red;")
+        
+        connection_layout.addWidget(port_label)
+        connection_layout.addWidget(self.port_input)
+        connection_layout.addWidget(self.connect_button)
+        connection_layout.addWidget(self.connection_status)
+        
+        return connection_layout
 
+    def toggle_connection(self):
+        if self.serial_interface.serial_connection and self.serial_interface.serial_connection.is_open:
+            self.serial_interface.close()
+            self.connect_button.setText("Connect")
+            self.connection_status.setText("Not Connected")
+            self.connection_status.setStyleSheet("color: red;")
+            self.port_input.setEnabled(True)
+        else:
+            port = self.port_input.text()
+            self.serial_interface.set_port(port)
+            success = self.serial_interface.connect()
+            if success:
+                self.connect_button.setText("Disconnect")
+                self.connection_status.setText("Connected")
+                self.connection_status.setStyleSheet("color: green;")
+                self.port_input.setEnabled(False)
+            else:
+                self.connection_status.setText("Failed to connect")
+                self.connection_status.setStyleSheet("color: red;")
+
+    def init_ui(self):
+        main_layout = QVBoxLayout()
+        main_layout.setSpacing(20)  # Increase spacing between sections
+    
+        # Connection Control Group
+        connection_group = QGroupBox("Connection Control")
+        connection_group.setStyleSheet("""
+            QGroupBox {
+                border: 2px solid #555555;
+                border-radius: 6px;
+                margin-top: 6px;
+                padding-top: 10px;
+                color: white;
+            }
+        """)
+        connection_layout = QVBoxLayout()
+        connection_layout.addLayout(self.create_connection_control())
+        connection_group.setLayout(connection_layout)
+        main_layout.addWidget(connection_group)
+
+        # Joint Controls Group
+        joints_group = QGroupBox("Joint Controls")
+        joints_group.setStyleSheet("""
+            QGroupBox {
+                border: 2px solid #555555;
+                border-radius: 6px;
+                margin-top: 6px;
+                padding-top: 10px;
+                color: white;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px;
+            }
+        """)
+        joints_layout = QVBoxLayout()
+        joints_layout.addLayout(self.create_joint_control("Base", 0, 0))
+        joints_layout.addLayout(self.create_joint_control("Shoulder", 1, 0))
+        joints_layout.addLayout(self.create_joint_control("Elbow", 2, 0))
+        joints_layout.addLayout(self.create_joint_control("Wrist", 3, 0))
+        joints_layout.addLayout(self.create_joint_control("Hand", 4, 0))
+        joints_group.setLayout(joints_layout)
+        main_layout.addWidget(joints_group)
+
+        # Global Controls Group
+        global_controls_group = QGroupBox("Global Controls")
+        global_controls_group.setStyleSheet("""
+            QGroupBox {
+                border: 2px solid #555555;
+                border-radius: 6px;
+                margin-top: 6px;
+                padding-top: 10px;
+                color: white;
+            }
+        """)
+        global_layout = QVBoxLayout()
+        global_layout.addLayout(self.create_set_all_joints_control())
+        global_layout.addLayout(self.create_gripper_control())
+        global_controls_group.setLayout(global_layout)
+        main_layout.addWidget(global_controls_group)
+
+        # Sequence Control Group
+        sequence_group = QGroupBox("Sequence Control")
+        sequence_group.setStyleSheet("""
+            QGroupBox {
+                border: 2px solid #555555;
+                border-radius: 6px;
+                margin-top: 6px;
+                padding-top: 10px;
+                color: white;
+            }
+        """)
+        sequence_layout = QVBoxLayout()
+        sequence_layout.addLayout(self.create_sequence_control())
+        sequence_group.setLayout(sequence_layout)
+        main_layout.addWidget(sequence_group)
+
+
+
+        # Add some padding around the entire window
+        main_layout.setContentsMargins(10, 10, 10, 10)
         self.setLayout(main_layout)
 
     def update_label(self, label, joint_name, value):
@@ -257,7 +363,8 @@ class RoboticArmControlApp(QWidget):
 
 if __name__ == "__main__":
     app = QApplication([])
-    window = RoboticArmControlApp(port='COM6')
+    app.setApplicationName("MOGA Robotics | 5DOF Arm Control")  # Set the application name
+    window = RoboticArmControlApp()
     window.show()
     app.exec()
 

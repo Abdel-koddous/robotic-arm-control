@@ -7,13 +7,22 @@ class SerialInterface:
         self.baudrate = baudrate
         self.serial_connection = None
 
+    def set_port(self, port):
+        self.port = port
+
+    def set_baudrate(self, baudrate):
+        self.baudrate = baudrate
+
     def connect(self):
+        success = False
         try:
             self.serial_connection = serial.Serial(self.port, self.baudrate)
             print(f"Connected to {self.port} at {self.baudrate} baud.")
-            time.sleep(2)
+            time.sleep(0.5) # wait for the connection to be established
+            success = True
         except serial.SerialException as e:
             print(f"Error connecting to serial port: {e}")
+        return success
 
     def send_command(self, command):
         if self.serial_connection and self.serial_connection.is_open:

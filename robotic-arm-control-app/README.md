@@ -8,6 +8,8 @@ Current features include:
 - Adjustable sliders for each joint to set their positions.
 - Input fields for precise joint value entry.
 - Buttons to open and close the gripper.
+- A sequence manager to play back a sequence of poses.
+- A connection section to connect to the serial port of the Arduino.
 
 Upcoming features:
 - Toggle switch button for unit selection (motor steps or angles).
@@ -16,6 +18,6 @@ Upcoming features:
 ### How to run the application:
 
 ```
-cd robotic-arm-control
+cd robotic-arm-control-app
 python robotic_arm_control_gui.py
 ```
