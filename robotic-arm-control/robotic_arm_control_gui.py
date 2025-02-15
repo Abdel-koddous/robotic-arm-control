@@ -9,7 +9,7 @@ class RoboticArmControlApp(QWidget):
     def __init__(self, port='COM5'):
         super().__init__()
         self.serial_interface = SerialInterface(port, baudrate=9600)
-        self.serial_interface.connect()
+        #self.serial_interface.connect()
         self.joint_values = [0, 0, 0, 0, 0]  # Updated for 5 joints
         self.sequence_manager = SequenceManager(self.serial_interface)
         self.sequence_thread = None
@@ -180,10 +180,71 @@ class RoboticArmControlApp(QWidget):
         
         return sequence_layout
 
+    def create_connection_control(self):
+        """Create the connection control panel"""
+        connection_layout = QHBoxLayout()
+        
+        # Port input
+        port_label = QLabel("Arduino COM Port:")
+        self.port_input = QLineEdit()
+        self.port_input.setText("COM6")  # Default port
+        self.port_input.setFixedWidth(100)
+        
+        # Connect button
+        self.connect_button = QPushButton("Connect")
+        self.connect_button.clicked.connect(self.toggle_connection)
+        
+        # Status label
+        self.connection_status = QLabel("Not Connected")
+        self.connection_status.setStyleSheet("color: red;")
+        
+        connection_layout.addWidget(port_label)
+        connection_layout.addWidget(self.port_input)
+        connection_layout.addWidget(self.connect_button)
+        connection_layout.addWidget(self.connection_status)
+        
+        return connection_layout
+
+    def toggle_connection(self):
+        if self.serial_interface.serial_connection and self.serial_interface.serial_connection.is_open:
+            self.serial_interface.close()
+            self.connect_button.setText("Connect")
+            self.connection_status.setText("Not Connected")
+            self.connection_status.setStyleSheet("color: red;")
+            self.port_input.setEnabled(True)
+        else:
+            try:
+                port = self.port_input.text()
+                self.serial_interface = SerialInterface(port, baudrate=9600)
+                self.serial_interface.connect()
+                self.connect_button.setText("Disconnect")
+                self.connection_status.setText("Connected")
+                self.connection_status.setStyleSheet("color: green;")
+                self.port_input.setEnabled(False)
+            except Exception as e:
+                self.connection_status.setText(f"Error: {str(e)}")
+                self.connection_status.setStyleSheet("color: red;")
+
     def init_ui(self):
         main_layout = QVBoxLayout()
         main_layout.setSpacing(15)  # Increase spacing between sections
-        
+    
+        # Connection Control Group
+        connection_group = QGroupBox("Connection Control")
+        connection_group.setStyleSheet("""
+            QGroupBox {
+                border: 2px solid #555555;
+                border-radius: 6px;
+                margin-top: 6px;
+                padding-top: 10px;
+                color: white;
+            }
+        """)
+        connection_layout = QVBoxLayout()
+        connection_layout.addLayout(self.create_connection_control())
+        connection_group.setLayout(connection_layout)
+        main_layout.addWidget(connection_group)
+
         # Joint Controls Group
         joints_group = QGroupBox("Joint Controls")
         joints_group.setStyleSheet("""
@@ -241,6 +302,8 @@ class RoboticArmControlApp(QWidget):
         sequence_layout.addLayout(self.create_sequence_control())
         sequence_group.setLayout(sequence_layout)
         main_layout.addWidget(sequence_group)
+
+
 
         # Add some padding around the entire window
         main_layout.setContentsMargins(10, 10, 10, 10)
