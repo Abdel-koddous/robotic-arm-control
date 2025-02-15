@@ -183,7 +183,7 @@ class RoboticArmControlApp(QWidget):
         connection_layout = QHBoxLayout()
         
         # Port input
-        port_label = QLabel("Arduino COM Port:")
+        port_label = QLabel("Arduino COM Port")
         self.port_input = QLineEdit()
         self.port_input.setText("COM6")  # Default port
         self.port_input.setFixedWidth(100)
@@ -211,21 +211,21 @@ class RoboticArmControlApp(QWidget):
             self.connection_status.setStyleSheet("color: red;")
             self.port_input.setEnabled(True)
         else:
-            try:
-                port = self.port_input.text()
-                self.serial_interface = SerialInterface(port, baudrate=9600)
-                self.serial_interface.connect()
+            port = self.port_input.text()
+            self.serial_interface.set_port(port)
+            success = self.serial_interface.connect()
+            if success:
                 self.connect_button.setText("Disconnect")
                 self.connection_status.setText("Connected")
                 self.connection_status.setStyleSheet("color: green;")
                 self.port_input.setEnabled(False)
-            except Exception as e:
-                self.connection_status.setText(f"Error: {str(e)}")
+            else:
+                self.connection_status.setText("Failed to connect")
                 self.connection_status.setStyleSheet("color: red;")
 
     def init_ui(self):
         main_layout = QVBoxLayout()
-        main_layout.setSpacing(15)  # Increase spacing between sections
+        main_layout.setSpacing(20)  # Increase spacing between sections
     
         # Connection Control Group
         connection_group = QGroupBox("Connection Control")

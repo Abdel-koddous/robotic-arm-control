@@ -49,6 +49,11 @@ class SequenceManager:
     def execute_pose(self, pose):
         """Execute a single pose"""
         command = "".join([f"m{i}0{val}" for i, val in enumerate(pose.joint_values)])
+        print(f"Executing command: {command}")
+
+        if not self.serial_interface.serial_connection.is_open:
+            self.serial_interface.connect()
+        
         return self.serial_interface.send_move_joint_command(command)
     
     def play_sequence(self, back_and_forth=True):
