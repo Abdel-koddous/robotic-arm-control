@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import QApplication, QWidget, QHBoxLayout, QSlider, QPushButton, QLabel, QVBoxLayout, QLineEdit, QFormLayout, QListWidget, QGroupBox, QFrame
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTimer
 from serial_interface_control import SerialInterface
 from sequence_manager import SequenceManager
 import threading
@@ -15,6 +15,12 @@ class RoboticArmControlApp(QWidget):
         self.sequence_manager = SequenceManager(self.serial_interface)
         self.sequence_thread = None
         self.joint_status_labels = {}
+        
+        # Create and start status update timer
+        self.status_timer = QTimer()
+        self.status_timer.timeout.connect(self.update_all_joint_status)
+        self.status_timer.start(100)  # Update every 100ms
+
         self.init_ui()
 
     def create_joint_control(self, joint_name, joint_id, initial_value):
@@ -323,8 +329,6 @@ class RoboticArmControlApp(QWidget):
         sequence_group.setLayout(sequence_layout)
         main_layout.addWidget(sequence_group)
 
-
-
         # Add some padding around the entire window
         main_layout.setContentsMargins(10, 10, 10, 10)
         self.setLayout(main_layout)
@@ -382,6 +386,27 @@ class RoboticArmControlApp(QWidget):
         """Clear the sequence and update the display"""
         self.sequence_manager.clear_sequence()
         self.update_poses_list()  # Update the UI list after clearing
+
+    def update_all_joint_status(self):
+        """Update all joint status indicators based on SerialInterface status"""
+        if hasattr(self.serial_interface, 'joints_status') and self.serial_interface.joints_status:
+            for joint_id in range(len(self.serial_interface.joints_status)):
+                status = self.serial_interface.joints_status[joint_id]
+                self.update_joint_status_indicator(joint_id, status)
+
+    def update_joint_status_indicator(self, joint_id, status):
+        """Update the visual indicator for a specific joint"""
+        if joint_id in self.joint_status_labels:
+            status_colors = {
+                'idle': '#808080',      # Gray
+                'running': '#FFA500',     # Orange
+                'done': '#00FF00',  # Green
+                'unknown': '#FFFF00'        # Yellow
+            }
+            color = status_colors.get(status, '#808080')
+            self.joint_status_labels[joint_id].setStyleSheet(
+                f"background-color: {color}; border-radius: 7px;"
+            )
 
 if __name__ == "__main__":
     app = QApplication([])
