@@ -7,6 +7,8 @@ class SerialInterface:
         self.port = port
         self.baudrate = baudrate
         self.serial_connection = None
+        self.num_joints = 5
+        self.joints_status = ["idle"] * self.num_joints
 
     def set_port(self, port):
         self.port = port
@@ -44,7 +46,6 @@ class SerialInterface:
         """
         start_time = time.time()
         serial_output = "none"
-        new_joint_status = current_status
         print("Monitoring move joint command...")
         if self.serial_connection and self.serial_connection.is_open:
             while True:
@@ -53,20 +54,20 @@ class SerialInterface:
                     break
                 elif self.serial_connection.in_waiting > 0:
                     serial_output = self.serial_connection.readline().decode('utf-8').rstrip()
-                    #print(serial_output)
+                    print(serial_output)
                     if "run" in serial_output:
-                        new_joint_status = "running"
-                        print(f"Joint status: {new_joint_status}")
+                        self.update_joint_status(serial_output)
+                        print(f"Joints status: {self.joints_status}")
                     elif "done" in serial_output:
-                        new_joint_status = "done"
-                        print(f"Joint status: {new_joint_status}")
+                        self.update_joint_status(serial_output)
+                        print(f"Joints status: {self.joints_status}")
                         break
 
                 time.sleep(0.05) # 50 ms
         else:
             print("Serial connection is not open.")
 
-        return new_joint_status
+
 
     def send_move_joint_command(self, command):
         """
@@ -74,20 +75,43 @@ class SerialInterface:
         until the move joint command is started.
         """
         joint_status = "idle"
-        print("--------------------------------")
+        print("########################################################")
         print(f"Sending Move Joint Command: {command}")
         self.send_command(command)
 
         # Create a thread to monitor the move joint command
         monitor_thread = threading.Thread(
             target=self.monitor_move_joint_command,
-            kwargs={'current_status': joint_status, 'timeout': 10}
+            kwargs={'current_status': joint_status, 'timeout': 20}
         )
         # Start the monitoring thread
         monitor_thread.start()
 
         # return some feedback?
 
+    def update_joint_status(self, serial_output):
+        """
+        Update the joint status from the serial output 
+        example: m001500run
+        """
+        # Extract the joint id from the serial output
+        try:
+            joint_id = int(serial_output[1])
+        except Exception as e:
+            print(f"Error extracting joint id from serial output: {e}")
+            joint_id = -1
+
+        # Extract the joint status from the serial output
+        if "run" in serial_output:
+            joint_status = "running"
+        elif "done" in serial_output:
+            joint_status = "done"
+        else:
+            print(f"Unknown joint status in serial output: {serial_output}")
+            joint_status = "unknown"
+
+        # Update the joint status   
+        self.joints_status[joint_id] = joint_status
 
 if __name__ == "__main__":
 

@@ -26,7 +26,7 @@ void parseInputCommand(String command) {
 }
 
 void parseMultipleMoveCommands(String command) {
-    Serial.println("================================================");
+    Serial.println("==========================");
     Serial.println("InputCommand => " + command);
     int separatorIndex = 0;
     while (separatorIndex < command.length()) {
