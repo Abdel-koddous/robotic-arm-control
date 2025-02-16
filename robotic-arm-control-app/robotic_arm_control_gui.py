@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QApplication, QWidget, QHBoxLayout, QSlider, QPushButton, QLabel, QVBoxLayout, QLineEdit, QFormLayout, QListWidget, QGroupBox
+from PyQt6.QtWidgets import QApplication, QWidget, QHBoxLayout, QSlider, QPushButton, QLabel, QVBoxLayout, QLineEdit, QFormLayout, QListWidget, QGroupBox, QFrame
 from PyQt6.QtCore import Qt
 from serial_interface_control import SerialInterface
 from sequence_manager import SequenceManager
@@ -11,6 +11,7 @@ class RoboticArmControlApp(QWidget):
         self.joint_values = [0, 0, 0, 0, 0]  # Updated for 5 joints
         self.sequence_manager = SequenceManager(self.serial_interface)
         self.sequence_thread = None
+        self.joint_status_labels = {}
         self.init_ui()
 
     def create_joint_control(self, joint_name, joint_id, initial_value):
@@ -38,6 +39,12 @@ class RoboticArmControlApp(QWidget):
         button.setMinimumWidth(100)
         joint_layout.addWidget(button)  
 
+        # Add status indicator
+        self.joint_status_labels[joint_id] = QFrame()
+        self.joint_status_labels[joint_id].setFixedSize(15, 15)  # Set size of the LED
+        self.joint_status_labels[joint_id].setStyleSheet("background-color: green;")  # Default color (off)
+        joint_layout.addWidget(self.joint_status_labels[joint_id])
+        
         slider.valueChanged.connect(lambda value: self.update_label(label, joint_name, value))
         slider.valueChanged.connect(lambda value: value_input.setText(str(value)))  
         slider.valueChanged.connect(lambda value: self.set_joint_value(joint_id, value))
@@ -225,7 +232,7 @@ class RoboticArmControlApp(QWidget):
 
     def init_ui(self):
         main_layout = QVBoxLayout()
-        main_layout.setSpacing(20)  # Increase spacing between sections
+        main_layout.setSpacing(15)  # Increase spacing between sections
     
         # Connection Control Group
         connection_group = QGroupBox("Connection Control")
