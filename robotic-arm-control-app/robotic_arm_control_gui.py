@@ -312,7 +312,7 @@ class RoboticArmControlApp(QWidget):
 
     def send_command(self, joint_id, value):
         command = f"m{joint_id}0{value}"
-        print(f"Sending command: {command}")
+        #print(f"Sending command: {command}")
         if joint_id == 3:
             self.serial_interface.send_command(command)
         else:

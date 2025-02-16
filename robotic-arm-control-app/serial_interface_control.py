@@ -1,5 +1,6 @@
 import serial
 import time
+import threading
 
 class SerialInterface:
     def __init__(self, port='COM5', baudrate=9600):
@@ -27,7 +28,7 @@ class SerialInterface:
     def send_command(self, command):
         if self.serial_connection and self.serial_connection.is_open:
             self.serial_connection.write(command.encode())
-            print(f"Sent command: {command}")
+            #print(f"Sent command: {command}")
         else:
             print("Serial connection is not open.")
 
@@ -36,58 +37,57 @@ class SerialInterface:
             self.serial_connection.close()
             print("Serial connection closed.")
 
-    def read_output(self):
-        output = "none"
-        if self.serial_connection and self.serial_connection.is_open:
-            while self.serial_connection.in_waiting > 0:
-                output = self.serial_connection.readline().decode('utf-8').rstrip()
-                print(output)
-                # Loop until the stepper STARTED message is received
-                if "STARTED moving..." in output:
-                    break
-                time.sleep(0.1)
-        return output
-
-    def monitor_move_joint_command(self, timeout=5):
+    def monitor_move_joint_command(self, current_status, timeout=10):
         """
-        Monitor the move joint command until the stepper STARTED message.
+        Monitor the move joint command until the move joint command is received.
         timeout is in seconds.
         """
         start_time = time.time()
         serial_output = "none"
+        new_joint_status = current_status
         print("Monitoring move joint command...")
         if self.serial_connection and self.serial_connection.is_open:
-            while self.serial_connection.in_waiting > 0:
-                serial_output = self.serial_connection.readline().decode('utf-8').rstrip()
-                print(serial_output)
-                if "STARTED moving..." in serial_output:
+            while True:
+                if (time.time() - start_time) > timeout:
+                    print("ERROR: Timeout - MOVE JOINT DID NOT GO THROUGH...")
                     break
-                if time.time() - start_time > timeout:
-                    print("Timeout: move joint command not received")
-                    break
-                time.sleep(0.05)
+                elif self.serial_connection.in_waiting > 0:
+                    serial_output = self.serial_connection.readline().decode('utf-8').rstrip()
+                    #print(serial_output)
+                    if "run" in serial_output:
+                        new_joint_status = "running"
+                        print(f"Joint status: {new_joint_status}")
+                    elif "done" in serial_output:
+                        new_joint_status = "done"
+                        print(f"Joint status: {new_joint_status}")
+                        break
+
+                time.sleep(0.05) # 50 ms
         else:
             print("Serial connection is not open.")
 
-        return serial_output
+        return new_joint_status
 
     def send_move_joint_command(self, command):
-        success = True
-
+        """
+        Send the move joint command to the Arduino & monitor the joint status 
+        until the move joint command is started.
+        """
+        joint_status = "idle"
+        print("--------------------------------")
+        print(f"Sending Move Joint Command: {command}")
         self.send_command(command)
-        time.sleep(0.5)
-        # number_of_motors = command.count("m")
-        # motors_started = 0
-        # for i in range(number_of_motors):
-        #    result = self.monitor_move_joint_command(timeout=10)    
-        #   if "STARTED moving..." in result:
-        #         motors_started += 1
-        #    
-        #     if motors_started == number_of_motors:
-        #             success = True
-        #             break
-        #        
-        return success
+
+        # Create a thread to monitor the move joint command
+        monitor_thread = threading.Thread(
+            target=self.monitor_move_joint_command,
+            kwargs={'current_status': joint_status, 'timeout': 10}
+        )
+        # Start the monitoring thread
+        monitor_thread.start()
+
+        # return some feedback?
+
 
 if __name__ == "__main__":
 
