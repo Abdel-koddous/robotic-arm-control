@@ -27,7 +27,7 @@ void parseInputCommand(String command) {
 
 void parseMultipleMoveCommands(String command) {
     Serial.println("================================================");
-    Serial.println("Parsing input command: " + command);
+    Serial.println("InputCommand => " + command);
     int separatorIndex = 0;
     while (separatorIndex < command.length()) {
         int nextSeparatorIndex = command.indexOf('m', separatorIndex + 1);
@@ -40,7 +40,7 @@ void parseMultipleMoveCommands(String command) {
             subCommand = command.substring(separatorIndex, nextSeparatorIndex);
             separatorIndex = nextSeparatorIndex;
         }
-        Serial.println("Sub-command received: " + subCommand);
+        //Serial.println("Sub-command received: " + subCommand);
         processCommand(subCommand);
     }
 }
@@ -62,7 +62,8 @@ void processCommand(String command) {
     else 
     {
       roboticArmSteppers[motorId].moveTo(steps);
-      Serial.println("Stepper " +   String(motorId) + " STARTED moving...");
+      //Serial.println("Stepper " +   String(motorId) + " STARTED moving...");
+      Serial.println("m" + String(motorId) + String(direction) + String(steps) + "run");
     }
   }
 }
