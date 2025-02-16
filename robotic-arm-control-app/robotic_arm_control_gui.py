@@ -5,6 +5,9 @@ from sequence_manager import SequenceManager
 import threading
 
 class RoboticArmControlApp(QWidget):
+    """
+    Main application class for the robotic arm control GUI.
+    """
     def __init__(self):
         super().__init__()
         self.serial_interface = SerialInterface()
@@ -15,6 +18,9 @@ class RoboticArmControlApp(QWidget):
         self.init_ui()
 
     def create_joint_control(self, joint_name, joint_id, initial_value):
+        """
+        Create a control panel for a single joint.
+        """
         joint_layout = QHBoxLayout()  
         
         label = QLabel(f"{joint_name} Joint: {initial_value}")
@@ -42,7 +48,7 @@ class RoboticArmControlApp(QWidget):
         # Add status indicator
         self.joint_status_labels[joint_id] = QFrame()
         self.joint_status_labels[joint_id].setFixedSize(15, 15)  # Set size of the LED
-        self.joint_status_labels[joint_id].setStyleSheet("background-color: green;")  # Default color (off)
+        self.joint_status_labels[joint_id].setStyleSheet("background-color: gray;")  # Default color (off)
         joint_layout.addWidget(self.joint_status_labels[joint_id])
         
         slider.valueChanged.connect(lambda value: self.update_label(label, joint_name, value))
@@ -54,12 +60,21 @@ class RoboticArmControlApp(QWidget):
         return joint_layout  
     
     def set_joint_value(self, joint_id, value):
+        """
+        Set the value of a joint in joint_values list attribute.
+        """
         self.joint_values[joint_id] = value
     
     def get_joint_value(self, joint_id):
+        """
+        Get the value of a joint from the joint_values list attribute.
+        """
         return self.joint_values[joint_id]
     
     def create_gripper_control(self):
+        """
+        Create a control panel for the gripper.
+        """
         gripper_layout = QHBoxLayout()
 
         open_button = QPushButton("Open Gripper (Disabled for now)")

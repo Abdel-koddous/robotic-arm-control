@@ -39,7 +39,7 @@ class SerialInterface:
             self.serial_connection.close()
             print("Serial connection closed.")
 
-    def monitor_move_joint_command(self, current_status, timeout=10):
+    def monitor_move_joint_command(self, timeout=10):
         """
         Monitor the move joint command until the move joint command is received.
         timeout is in seconds.
@@ -55,12 +55,11 @@ class SerialInterface:
                 elif self.serial_connection.in_waiting > 0:
                     serial_output = self.serial_connection.readline().decode('utf-8').rstrip()
                     print(serial_output)
-                    if "run" in serial_output:
+                    if "run" in serial_output or "done" in serial_output:
                         self.update_joint_status(serial_output)
                         print(f"Joints status: {self.joints_status}")
-                    elif "done" in serial_output:
-                        self.update_joint_status(serial_output)
-                        print(f"Joints status: {self.joints_status}")
+                    if "done" in serial_output and "running" not in self.joints_status:
+                        print("All joints movements are done...")
                         break
 
                 time.sleep(0.05) # 50 ms
@@ -74,7 +73,6 @@ class SerialInterface:
         Send the move joint command to the Arduino & monitor the joint status 
         until the move joint command is started.
         """
-        joint_status = "idle"
         print("########################################################")
         print(f"Sending Move Joint Command: {command}")
         self.send_command(command)
@@ -82,7 +80,7 @@ class SerialInterface:
         # Create a thread to monitor the move joint command
         monitor_thread = threading.Thread(
             target=self.monitor_move_joint_command,
-            kwargs={'current_status': joint_status, 'timeout': 20}
+            kwargs={'timeout': 20}
         )
         # Start the monitoring thread
         monitor_thread.start()
