@@ -48,17 +48,45 @@ class SerialInterface:
                 time.sleep(0.1)
         return output
 
+    def monitor_move_joint_command(self, timeout=5):
+        """
+        Monitor the move joint command until the stepper STARTED message.
+        timeout is in seconds.
+        """
+        start_time = time.time()
+        serial_output = "none"
+        print("Monitoring move joint command...")
+        if self.serial_connection and self.serial_connection.is_open:
+            while self.serial_connection.in_waiting > 0:
+                serial_output = self.serial_connection.readline().decode('utf-8').rstrip()
+                print(serial_output)
+                if "STARTED moving..." in serial_output:
+                    break
+                if time.time() - start_time > timeout:
+                    print("Timeout: move joint command not received")
+                    break
+                time.sleep(0.05)
+        else:
+            print("Serial connection is not open.")
+
+        return serial_output
+
     def send_move_joint_command(self, command):
-        success = False
+        success = True
 
         self.send_command(command)
-        while True:
-            output = self.read_output()
-            if "STARTED moving..." in output:
-                print("Congrats! move joint command sent successfully :)")
-                success = True
-                break
-            time.sleep(1)
+        time.sleep(0.5)
+        # number_of_motors = command.count("m")
+        # motors_started = 0
+        # for i in range(number_of_motors):
+        #    result = self.monitor_move_joint_command(timeout=10)    
+        #   if "STARTED moving..." in result:
+        #         motors_started += 1
+        #    
+        #     if motors_started == number_of_motors:
+        #             success = True
+        #             break
+        #        
         return success
 
 if __name__ == "__main__":
@@ -67,12 +95,12 @@ if __name__ == "__main__":
 
     serial_interface.connect()
     # Example command to send to the Arduino
-    move_joint_command = "m002000m101000m201500"      
+    move_joint_command = "m002005m101000m201500"      
     serial_interface.send_move_joint_command(move_joint_command)
 
-    time.sleep(10)
-    move_joint_command = "m000" 
-    serial_interface.send_move_joint_command(move_joint_command)
+    # time.sleep(10)
+    # move_joint_command = "m000" 
+    # serial_interface.send_move_joint_command(move_joint_command)
 
     serial_interface.close()
 
