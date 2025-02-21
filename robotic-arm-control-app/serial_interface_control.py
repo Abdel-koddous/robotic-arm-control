@@ -39,30 +39,43 @@ class SerialInterface:
             self.serial_connection.close()
             print("Serial connection closed.")
 
-    def monitor_move_joint_command(self, timeout=10):
+    def monitor_move_joint_command(self, command_to_monitor, timeout=60):
         """
         Monitor the move joint command until the move joint command is received.
         timeout is in seconds.
         """
         start_time = time.time()
         serial_output = "none"
-        print("Monitoring move joint command...")
+        print(f"SerialInterface Class - Monitoring move joint command: {command_to_monitor}")
+        serial_connection_monitoring_period = 0.1 # 100 ms
+        no_data_received_message_period = 3 # seconds
+        serial_connection_waiting_count = 0
+
         if self.serial_connection and self.serial_connection.is_open:
             while True:
                 if (time.time() - start_time) > timeout:
-                    print("ERROR: Timeout - MOVE JOINT DID NOT GO THROUGH...")
+                    print(f"ERROR: Timeout - MOVE JOINT COMMAND {command_to_monitor} DID NOT GO THROUGH...")
                     break
-                elif self.serial_connection.in_waiting > 0:
+                
+                if self.serial_connection.in_waiting > 0:
                     serial_output = self.serial_connection.readline().decode('utf-8').rstrip()
-                    print(serial_output)
+                    print(f"serial_output => {serial_output}")
                     if "run" in serial_output or "done" in serial_output:
                         self.update_joint_status(serial_output)
                         print(f"Joints status: {self.joints_status}")
                     if "done" in serial_output and "running" not in self.joints_status:
                         print("All joints movements are done...")
                         break
+                    
+                    serial_connection_waiting_count = 0
 
-                time.sleep(0.05) # 50 ms
+                else:
+                    serial_connection_waiting_count += 1
+                    if serial_connection_waiting_count > no_data_received_message_period / serial_connection_monitoring_period:
+                        print("Monitoring - No data received yet from the serial connection...")
+                        serial_connection_waiting_count = 0
+                               
+                time.sleep(serial_connection_monitoring_period) # 100 ms
         else:
             print("Serial connection is not open.")
 
@@ -74,13 +87,13 @@ class SerialInterface:
         until the move joint command is started.
         """
         print("########################################################")
-        print(f"Sending Move Joint Command: {command}")
+        print(f"SerialInterface Class - Sending Move Joint Command: {command}")
         self.send_command(command)
 
         # Create a thread to monitor the move joint command
         monitor_thread = threading.Thread(
             target=self.monitor_move_joint_command,
-            kwargs={'timeout': 20}
+            kwargs={'command_to_monitor': command, 'timeout': 45}
         )
         # Start the monitoring thread
         monitor_thread.start()

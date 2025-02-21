@@ -26,8 +26,8 @@ void parseInputCommand(String command) {
 }
 
 void parseMultipleMoveCommands(String command) {
-    Serial.println("==========================");
-    Serial.println("InputCommand => " + command);
+    //Serial.println("==========================");
+    //Serial.println("ArduinoReceived=>" + command);
     int separatorIndex = 0;
     while (separatorIndex < command.length()) {
         int nextSeparatorIndex = command.indexOf('m', separatorIndex + 1);
@@ -51,9 +51,11 @@ void processCommand(String command) {
     int direction = command.charAt(2) - '0';
     int steps = command.substring(3).toInt();
 
+    /*
     Serial.println("Motor ID: " + String(motorId));
     Serial.println("Direction: " + String(direction));
     Serial.println("Steps: " + String(steps));
+    */
 
     if (roboticArmSteppers[motorId].currentPosition() == steps) {
       //Serial.println("Stepper " + String(motorId) + " is already at the target destination: " + String(roboticArmSteppers[motorId].currentPosition()));
