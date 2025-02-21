@@ -186,7 +186,7 @@ class RoboticArmControlApp(QWidget):
         
         # Interval control
         interval_layout = QHBoxLayout()
-        interval_layout.addWidget(QLabel("Interval (seconds):"))
+        interval_layout.addWidget(QLabel("Interval Between Poses (seconds):"))
         
         self.interval_input = QLineEdit()
         self.interval_input.setText(str(self.sequence_manager.interval))

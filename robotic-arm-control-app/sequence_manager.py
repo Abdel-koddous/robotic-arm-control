@@ -11,7 +11,7 @@ class SequenceManager:
     def __init__(self, serial_interface):
         self.serial_interface = serial_interface
         self.poses = []  # List to store poses
-        self.interval = 10.0  # Default interval in seconds between poses
+        self.interval = 2  # Default interval in seconds between poses
         self.is_playing = False
         self.play_direction = 1  # 1 for forward, -1 for backward
     
@@ -19,7 +19,7 @@ class SequenceManager:
         """Add a new pose to the sequence"""
         pose = Pose(joint_values)
         self.poses.append(pose)
-        print(f"Added pose: {pose}")
+        # print(f"Added pose: {pose}")
         return len(self.poses) - 1  # Return index of added pose
     
     def remove_pose(self, index):
@@ -69,14 +69,16 @@ class SequenceManager:
         while self.is_playing:
             # Execute current pose
             current_pose = self.poses[current_index]
-            success = self.execute_pose(current_pose)
+            self.execute_pose(current_pose)
             
-            if not success:
-                print(f"Failed to execute pose at index {current_index}")
-                self.stop_sequence()
-                return False
+            while True:
+                time.sleep(0.1)
+                #print(f"SequenceManager Class - Monitoring - Joints status: {self.serial_interface.joints_status}")
+                if self.serial_interface.get_move_command_monitoring_done() is True:
+                    break
             
             # Wait for interval
+            print(f"SequenceManager Class - Waiting between poses for => {self.interval} seconds...")
             time.sleep(self.interval)
             
             # Update index based on direction

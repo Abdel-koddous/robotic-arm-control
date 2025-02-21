@@ -9,12 +9,17 @@ class SerialInterface:
         self.serial_connection = None
         self.num_joints = 5
         self.joints_status = ["idle"] * self.num_joints
+        self.move_command_monitoring_done = False
 
     def set_port(self, port):
         self.port = port
 
     def set_baudrate(self, baudrate):
         self.baudrate = baudrate
+
+    def get_move_command_monitoring_done(self):
+        """Return the status of move joint command monitoring."""
+        return self.move_command_monitoring_done
 
     def connect(self):
         success = False
@@ -44,9 +49,9 @@ class SerialInterface:
         Monitor the move joint command until the move joint command is received.
         timeout is in seconds.
         """
-        start_time = time.time()
-        serial_output = "none"
         print(f"SerialInterface Class - Monitoring move joint command: {command_to_monitor}")
+        self.move_command_monitoring_done = False
+        start_time = time.time()
         serial_connection_monitoring_period = 0.1 # 100 ms
         no_data_received_message_period = 3 # seconds
         serial_connection_waiting_count = 0
@@ -55,6 +60,7 @@ class SerialInterface:
             while True:
                 if (time.time() - start_time) > timeout:
                     print(f"ERROR: Timeout - MOVE JOINT COMMAND {command_to_monitor} DID NOT GO THROUGH...")
+                    self.move_command_monitoring_done = False
                     break
                 
                 if self.serial_connection.in_waiting > 0:
@@ -64,7 +70,9 @@ class SerialInterface:
                         self.update_joint_status(serial_output)
                         print(f"Joints status: {self.joints_status}")
                     if "done" in serial_output and "running" not in self.joints_status:
-                        print("All joints movements are done...")
+                        print("All joints movements are completed... Monitoring is over.")
+                        self.serial_connection.reset_input_buffer()  # Flush the input buffer of serial connection
+                        self.move_command_monitoring_done = True
                         break
                     
                     serial_connection_waiting_count = 0
