@@ -31,13 +31,13 @@ class RoboticArmControlApp(QWidget):
         joint_layout = QHBoxLayout()  
         
         label = QLabel(f"{joint_name} Joint: {initial_value}")
-        label.setMinimumWidth(100)
+        label.setMinimumWidth(120)  # Set minimum width for the joint control text
         joint_layout.addWidget(label)
 
         slider = QSlider(Qt.Orientation.Horizontal)
         slider.setTickPosition(QSlider.TickPosition.TicksBelow)
-        slider.setTickInterval(100)
-        slider.setRange(-5000, 5000)
+        slider.setTickInterval(110)
+        slider.setRange(-7000, 7000)
         slider.setValue(0)
         slider.setMinimumWidth(200)
         joint_layout.addWidget(slider)
@@ -159,7 +159,7 @@ class RoboticArmControlApp(QWidget):
     def create_sequence_control(self):
         """Create the sequence control panel"""
         sequence_layout = QVBoxLayout()
-        
+
         # Buttons layout
         buttons_layout = QHBoxLayout()
         
@@ -204,7 +204,16 @@ class RoboticArmControlApp(QWidget):
         self.poses_list = QListWidget()
         self.poses_list.setMinimumHeight(100)
         sequence_layout.addWidget(self.poses_list)
+    
+           # Status label
+        status_layout = QHBoxLayout()
+        status_layout.addWidget(QLabel("Sequence Status"))
+        self.sequence_status_label = QLabel("Idle")
+        self.sequence_status_label.setStyleSheet("color: gray;")
+        status_layout.addWidget(self.sequence_status_label)
+        sequence_layout.addLayout(status_layout)
         
+
         return sequence_layout
 
     def create_connection_control(self):
@@ -349,8 +358,14 @@ class RoboticArmControlApp(QWidget):
             self.serial_interface.send_move_joint_command(command)
 
     def send_move_all_joints_command(self):
-        command = f"m00{self.joint_values[0]}m10{self.joint_values[1]}m20{self.joint_values[2]}m30{self.joint_values[3]}m40{self.joint_values[4]}"
-        self.serial_interface.send_move_joint_command(command)
+        """Send command to move all joints to their respective target positions."""
+        move_all_joints_command = ""
+        for i, joint_value in enumerate(self.joint_values):
+            direction = "0" if joint_value >= 0 else "1"
+            abs_value = abs(joint_value)
+            move_all_joints_command += f"m{i}{direction}{abs_value}"
+
+        self.serial_interface.send_move_joint_command(move_all_joints_command)
 
     def add_current_pose(self):
         """Add current joint values as a pose to the sequence"""
@@ -370,6 +385,9 @@ class RoboticArmControlApp(QWidget):
             print("Sequence is already playing")
             return
         
+        self.sequence_status_label.setText("Running...")
+        self.sequence_status_label.setStyleSheet("color: #00FF00;")  # Green color
+        
         self.sequence_thread = threading.Thread(
             target=self.sequence_manager.play_sequence,
             kwargs={'back_and_forth': True}
@@ -381,7 +399,10 @@ class RoboticArmControlApp(QWidget):
         self.sequence_manager.stop_sequence()
         if self.sequence_thread:
             self.sequence_thread.join()
-    
+        
+        self.sequence_status_label.setText("Stopped")
+        self.sequence_status_label.setStyleSheet("color: red;")
+
     def clean_up(self):
         self.stop_sequence()
         self.serial_interface.close()
@@ -390,6 +411,8 @@ class RoboticArmControlApp(QWidget):
         """Clear the sequence and update the display"""
         self.sequence_manager.clear_sequence()
         self.update_poses_list()  # Update the UI list after clearing
+        self.sequence_status_label.setText("Idle")
+        self.sequence_status_label.setStyleSheet("color: gray;")
 
     def update_all_joint_status(self):
         """Update all joint status indicators based on SerialInterface status"""

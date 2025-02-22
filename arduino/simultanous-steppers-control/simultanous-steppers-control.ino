@@ -63,7 +63,7 @@ void processCommand(String command) {
 
     if (roboticArmSteppers[motorId].currentPosition() == targetPosition) {
       //Serial.println("Stepper " + String(motorId) + " is already at the target destination: " + String(roboticArmSteppers[motorId].currentPosition()));
-      Serial.println("m" + String(motorId) + String(roboticArmSteppers[motorId].currentPosition()) + "done");
+      Serial.println("m" + String(motorId) + String(directionCode) + String(roboticArmSteppers[motorId].currentPosition()) + "done");
     } 
     else 
     {

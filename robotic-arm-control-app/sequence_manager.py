@@ -19,6 +19,7 @@ class SequenceManager:
         self.poses = []  # List to store poses
         self.interval = 1  # Default interval in seconds between poses
         self.is_playing = False
+        self.current_pose_index = 0
         self.play_direction = 1  # 1 for forward, -1 for backward
     
     def add_pose(self, joint_values):
@@ -54,13 +55,13 @@ class SequenceManager:
     
     def execute_pose(self, pose):
         """Execute a single pose"""
-        command = "".join([f"m{i}0{val}" for i, val in enumerate(pose.joint_values)])
-        #print(f"Executing command: {command}")
+        move_all_joints_command = ""
+        for i, joint_value in enumerate(pose.joint_values):
+            direction = "0" if joint_value >= 0 else "1"
+            abs_value = abs(joint_value)
+            move_all_joints_command += f"m{i}{direction}{abs_value}"
 
-        if not self.serial_interface.serial_connection.is_open:
-            self.serial_interface.connect()
-        
-        return self.serial_interface.send_move_joint_command(command)
+        return self.serial_interface.send_move_joint_command(move_all_joints_command)
     
     def play_sequence(self, back_and_forth=True):
         """Start playing the sequence"""
@@ -69,13 +70,13 @@ class SequenceManager:
             return False
         
         self.is_playing = True
-        current_index = 0
+        self.current_pose_index = 0
         self.play_direction = 1
         
         while self.is_playing:
             # Execute current pose
-            print(f"## SequenceManager Class - Executing Pose Number => {current_index + 1} / {len(self.poses)} <=")
-            current_pose = self.poses[current_index]
+            print(f"## SequenceManager Class - Executing Pose Number => {self.current_pose_index + 1} / {len(self.poses)} <=")
+            current_pose = self.poses[self.current_pose_index]
             self.execute_pose(current_pose)
             
             while True:
@@ -89,20 +90,20 @@ class SequenceManager:
             time.sleep(self.interval)
             
             # Update index based on direction
-            current_index += self.play_direction
+            self.current_pose_index += self.play_direction
             
             # Handle direction changes if back_and_forth is True
             if back_and_forth:
-                if current_index >= len(self.poses):
-                    current_index = len(self.poses) - 2
+                if self.current_pose_index >= len(self.poses):
+                    self.current_pose_index = len(self.poses) - 2
                     self.play_direction = -1
-                elif current_index < 0:
-                    current_index = 1
+                elif self.current_pose_index < 0:
+                    self.current_pose_index = 1
                     self.play_direction = 1
             else:
                 # Just loop from start if we reach the end
-                if current_index >= len(self.poses):
-                    current_index = 0
+                if self.current_pose_index >= len(self.poses):
+                    self.current_pose_index = 0
                 
         return True
     

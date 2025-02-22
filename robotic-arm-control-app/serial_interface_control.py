@@ -60,7 +60,7 @@ class SerialInterface:
             while True:
                 if (time.time() - start_time) > timeout:
                     print(f"ERROR: Timeout - MOVE JOINT COMMAND {command_to_monitor} DID NOT GO THROUGH...")
-                    self.move_command_monitoring_done = False
+                    self.move_command_monitoring_done = True
                     break
                 
                 if self.serial_connection.in_waiting > 0:
