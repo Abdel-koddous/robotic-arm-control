@@ -37,8 +37,8 @@ class RoboticArmControlApp(QWidget):
         slider = QSlider(Qt.Orientation.Horizontal)
         slider.setTickPosition(QSlider.TickPosition.TicksBelow)
         slider.setTickInterval(100)
-        slider.setRange(0, 10000)
-        slider.setValue(initial_value)
+        slider.setRange(-5000, 5000)
+        slider.setValue(0)
         slider.setMinimumWidth(200)
         joint_layout.addWidget(slider)
 
@@ -61,8 +61,8 @@ class RoboticArmControlApp(QWidget):
         slider.valueChanged.connect(lambda value: self.update_label(label, joint_name, value))
         slider.valueChanged.connect(lambda value: value_input.setText(str(value)))  
         slider.valueChanged.connect(lambda value: self.set_joint_value(joint_id, value))
-        value_input.textChanged.connect(lambda text: slider.setValue(int(text)) if text.isdigit() else slider.setValue(0))
-        value_input.textChanged.connect(lambda text: self.set_joint_value(joint_id, int(text)) if text.isdigit() else self.set_joint_value(joint_id, 0))
+        value_input.textChanged.connect(lambda text: slider.setValue(int(text)) if text.lstrip('-').isdigit() else slider.setValue(0))
+        value_input.textChanged.connect(lambda text: self.set_joint_value(joint_id, int(text)) if text.lstrip('-').isdigit() else self.set_joint_value(joint_id, 0))
         
         return joint_layout  
     
@@ -85,11 +85,11 @@ class RoboticArmControlApp(QWidget):
         gripper_layout = QHBoxLayout()
 
         open_button = QPushButton("Open Gripper (Disabled for now)")
-        open_button.clicked.connect(lambda: self.send_command(3, 0))
+        open_button.clicked.connect(lambda: self.send_command(6, 0))
         gripper_layout.addWidget(open_button)
 
         close_button = QPushButton("Close Gripper (Disabled for now)")
-        close_button.clicked.connect(lambda: self.send_command(3, 1))
+        close_button.clicked.connect(lambda: self.send_command(6, 1))
         gripper_layout.addWidget(close_button)
 
         return gripper_layout
@@ -338,13 +338,16 @@ class RoboticArmControlApp(QWidget):
         label.setText(f"{joint_name} Joint: {value}")
 
     def send_command(self, joint_id, value):
-        command = f"m{joint_id}0{value}"
-        #print(f"Sending command: {command}")
-        if joint_id == 3:
+        # Determine if value is negative and create appropriate command
+        direction = "1" if value < 0 else "0"
+        abs_value = abs(value)
+        command = f"m{joint_id}{direction}{abs_value}"
+        
+        if joint_id == 6:
             self.serial_interface.send_command(command)
         else:
             self.serial_interface.send_move_joint_command(command)
-    
+
     def send_move_all_joints_command(self):
         command = f"m00{self.joint_values[0]}m10{self.joint_values[1]}m20{self.joint_values[2]}m30{self.joint_values[3]}m40{self.joint_values[4]}"
         self.serial_interface.send_move_joint_command(command)
