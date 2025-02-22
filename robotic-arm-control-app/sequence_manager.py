@@ -1,6 +1,9 @@
 import time
 
 class Pose:
+    """
+    Represents a pose of the robotic arm with joint values.
+    """
     def __init__(self, joint_values):
         self.joint_values = joint_values.copy()  # Make a copy to avoid reference issues
     
@@ -8,10 +11,13 @@ class Pose:
         return f"Pose(joints={self.joint_values})"
 
 class SequenceManager:
+    """
+    Manage a sequence of poses for a robotic arm, handling execution and monitoring.
+    """
     def __init__(self, serial_interface):
         self.serial_interface = serial_interface
         self.poses = []  # List to store poses
-        self.interval = 2  # Default interval in seconds between poses
+        self.interval = 1  # Default interval in seconds between poses
         self.is_playing = False
         self.play_direction = 1  # 1 for forward, -1 for backward
     
