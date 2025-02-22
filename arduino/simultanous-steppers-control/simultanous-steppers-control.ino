@@ -48,24 +48,28 @@ void parseMultipleMoveCommands(String command) {
 void processCommand(String command) {
   if (command.startsWith("m")) {
     int motorId = command.charAt(1) - '0';
-    int direction = command.charAt(2) - '0';
+    int directionCode = command.charAt(2) - '0';
     int steps = command.substring(3).toInt();
+    
+    // Set target position based on direction code and steps specified in the command
+    int targetPosition = (directionCode == 0) ? steps : (directionCode == 1) ? -steps : 0;
 
     /*
     Serial.println("Motor ID: " + String(motorId));
-    Serial.println("Direction: " + String(direction));
+    Serial.println("Direction Code: " + String(directionCode));
     Serial.println("Steps: " + String(steps));
+    Serial.println("Target Position: " + String(targetPosition));
     */
 
-    if (roboticArmSteppers[motorId].currentPosition() == steps) {
+    if (roboticArmSteppers[motorId].currentPosition() == targetPosition) {
       //Serial.println("Stepper " + String(motorId) + " is already at the target destination: " + String(roboticArmSteppers[motorId].currentPosition()));
       Serial.println("m" + String(motorId) + String(roboticArmSteppers[motorId].currentPosition()) + "done");
     } 
     else 
     {
-      roboticArmSteppers[motorId].moveTo(steps);
+      roboticArmSteppers[motorId].moveTo(targetPosition);
       //Serial.println("Stepper " +   String(motorId) + " STARTED moving...");
-      Serial.println("m" + String(motorId) + String(direction) + String(steps) + "run");
+      Serial.println("m" + String(motorId) + String(directionCode) + String(steps) + "run");
     }
   }
 }
@@ -76,7 +80,12 @@ void ManageStepperMovement(AccelStepper &stepper, int stepperIndex, bool &steppe
       stepperIsMovingStatus = true;
   } else if (stepper.distanceToGo() == 0 && stepperIsMovingStatus == true) {
       //Serial.println("Stepper " + String(stepperIndex) + " is at the destination: " + String(stepper.currentPosition()));
-      Serial.println("m" + String(stepperIndex) + String(stepper.currentPosition()) + "done");
+      int currentPosition = stepper.currentPosition();
+      if (currentPosition < 0) {
+        Serial.println("m" + String(stepperIndex) + String(1) + String(abs(currentPosition)) + "done");
+      } else {
+        Serial.println("m" + String(stepperIndex) + String(0) + String(abs(currentPosition)) + "done");
+      }
       stepperIsMovingStatus = false; 
   }
 }
