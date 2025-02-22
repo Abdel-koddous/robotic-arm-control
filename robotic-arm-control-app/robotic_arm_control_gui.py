@@ -1,19 +1,33 @@
-from PyQt6.QtWidgets import QApplication, QWidget, QHBoxLayout, QSlider, QPushButton, QLabel, QVBoxLayout, QLineEdit, QFormLayout, QListWidget, QGroupBox
-from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QApplication, QWidget, QHBoxLayout, QSlider, QPushButton, QLabel, QVBoxLayout, QLineEdit, QListWidget, QGroupBox, QFrame
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QIcon
 from serial_interface_control import SerialInterface
 from sequence_manager import SequenceManager
 import threading
 
 class RoboticArmControlApp(QWidget):
+    """
+    Main application class for the robotic arm control GUI.
+    """
     def __init__(self):
         super().__init__()
         self.serial_interface = SerialInterface()
         self.joint_values = [0, 0, 0, 0, 0]  # Updated for 5 joints
         self.sequence_manager = SequenceManager(self.serial_interface)
         self.sequence_thread = None
+        self.joint_status_labels = {}
+        
+        # Create and start status update timer
+        self.status_timer = QTimer()
+        self.status_timer.timeout.connect(self.update_all_joint_status)
+        self.status_timer.start(100)  # Update every 100ms
+
         self.init_ui()
 
     def create_joint_control(self, joint_name, joint_id, initial_value):
+        """
+        Create a control panel for a single joint.
+        """
         joint_layout = QHBoxLayout()  
         
         label = QLabel(f"{joint_name} Joint: {initial_value}")
@@ -38,6 +52,12 @@ class RoboticArmControlApp(QWidget):
         button.setMinimumWidth(100)
         joint_layout.addWidget(button)  
 
+        # Add status indicator
+        self.joint_status_labels[joint_id] = QFrame()
+        self.joint_status_labels[joint_id].setFixedSize(15, 15)  # Set size of the LED
+        self.joint_status_labels[joint_id].setStyleSheet("background-color: gray;")  # Default color (off)
+        joint_layout.addWidget(self.joint_status_labels[joint_id])
+        
         slider.valueChanged.connect(lambda value: self.update_label(label, joint_name, value))
         slider.valueChanged.connect(lambda value: value_input.setText(str(value)))  
         slider.valueChanged.connect(lambda value: self.set_joint_value(joint_id, value))
@@ -47,12 +67,21 @@ class RoboticArmControlApp(QWidget):
         return joint_layout  
     
     def set_joint_value(self, joint_id, value):
+        """
+        Set the value of a joint in joint_values list attribute.
+        """
         self.joint_values[joint_id] = value
     
     def get_joint_value(self, joint_id):
+        """
+        Get the value of a joint from the joint_values list attribute.
+        """
         return self.joint_values[joint_id]
     
     def create_gripper_control(self):
+        """
+        Create a control panel for the gripper.
+        """
         gripper_layout = QHBoxLayout()
 
         open_button = QPushButton("Open Gripper (Disabled for now)")
@@ -158,7 +187,7 @@ class RoboticArmControlApp(QWidget):
         
         # Interval control
         interval_layout = QHBoxLayout()
-        interval_layout.addWidget(QLabel("Interval (seconds):"))
+        interval_layout.addWidget(QLabel("Interval Between Poses (seconds):"))
         
         self.interval_input = QLineEdit()
         self.interval_input.setText(str(self.sequence_manager.interval))
@@ -225,7 +254,7 @@ class RoboticArmControlApp(QWidget):
 
     def init_ui(self):
         main_layout = QVBoxLayout()
-        main_layout.setSpacing(20)  # Increase spacing between sections
+        main_layout.setSpacing(15)  # Increase spacing between sections
     
         # Connection Control Group
         connection_group = QGroupBox("Connection Control")
@@ -301,8 +330,6 @@ class RoboticArmControlApp(QWidget):
         sequence_group.setLayout(sequence_layout)
         main_layout.addWidget(sequence_group)
 
-
-
         # Add some padding around the entire window
         main_layout.setContentsMargins(10, 10, 10, 10)
         self.setLayout(main_layout)
@@ -312,7 +339,7 @@ class RoboticArmControlApp(QWidget):
 
     def send_command(self, joint_id, value):
         command = f"m{joint_id}0{value}"
-        print(f"Sending command: {command}")
+        #print(f"Sending command: {command}")
         if joint_id == 3:
             self.serial_interface.send_command(command)
         else:
@@ -361,9 +388,40 @@ class RoboticArmControlApp(QWidget):
         self.sequence_manager.clear_sequence()
         self.update_poses_list()  # Update the UI list after clearing
 
+    def update_all_joint_status(self):
+        """Update all joint status indicators based on SerialInterface status"""
+        if hasattr(self.serial_interface, 'joints_status') and self.serial_interface.joints_status:
+            for joint_id in range(len(self.serial_interface.joints_status)):
+                status = self.serial_interface.joints_status[joint_id]
+                self.update_joint_status_indicator(joint_id, status)
+
+    def update_joint_status_indicator(self, joint_id, status):
+        """Update the visual indicator for a specific joint"""
+        if joint_id in self.joint_status_labels:
+            status_colors = {
+                'idle': '#808080',      # Gray
+                'running': '#FFA500',     # Orange
+                'done': '#00FF00',  # Green
+                'unknown': '#FFFF00'        # Yellow
+            }
+            color = status_colors.get(status, '#808080')
+            self.joint_status_labels[joint_id].setStyleSheet(
+                f"background-color: {color}; border-radius: 7px;"
+            )
+
 if __name__ == "__main__":
+    
     app = QApplication([])
+
     app.setApplicationName("MOGA Robotics | 5DOF Arm Control")  # Set the application name
+    app.setWindowIcon(QIcon("data/app_logo.png")) # set the logo for the application
+    app.setStyleSheet("""
+        QWidget {
+            background-color: #222222; 
+            color: #FFFFFF;
+        }
+    """)
+
     window = RoboticArmControlApp()
     window.show()
     app.exec()
