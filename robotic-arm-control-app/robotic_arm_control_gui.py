@@ -1,5 +1,6 @@
-from PyQt6.QtWidgets import QApplication, QWidget, QHBoxLayout, QSlider, QPushButton, QLabel, QVBoxLayout, QLineEdit, QFormLayout, QListWidget, QGroupBox, QFrame
+from PyQt6.QtWidgets import QApplication, QWidget, QHBoxLayout, QSlider, QPushButton, QLabel, QVBoxLayout, QLineEdit, QListWidget, QGroupBox, QFrame
 from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QIcon
 from serial_interface_control import SerialInterface
 from sequence_manager import SequenceManager
 import threading
@@ -409,8 +410,18 @@ class RoboticArmControlApp(QWidget):
             )
 
 if __name__ == "__main__":
+    
     app = QApplication([])
+
     app.setApplicationName("MOGA Robotics | 5DOF Arm Control")  # Set the application name
+    app.setWindowIcon(QIcon("data/app_logo.png")) # set the logo for the application
+    app.setStyleSheet("""
+        QWidget {
+            background-color: #222222; 
+            color: #FFFFFF;
+        }
+    """)
+
     window = RoboticArmControlApp()
     window.show()
     app.exec()
