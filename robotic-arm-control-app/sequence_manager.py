@@ -55,7 +55,7 @@ class SequenceManager:
     def execute_pose(self, pose):
         """Execute a single pose"""
         command = "".join([f"m{i}0{val}" for i, val in enumerate(pose.joint_values)])
-        print(f"Executing command: {command}")
+        #print(f"Executing command: {command}")
 
         if not self.serial_interface.serial_connection.is_open:
             self.serial_interface.connect()
@@ -74,6 +74,7 @@ class SequenceManager:
         
         while self.is_playing:
             # Execute current pose
+            print(f"## SequenceManager Class - Executing Pose Number => {current_index + 1} / {len(self.poses)} <=")
             current_pose = self.poses[current_index]
             self.execute_pose(current_pose)
             
@@ -84,7 +85,7 @@ class SequenceManager:
                     break
             
             # Wait for interval
-            print(f"SequenceManager Class - Waiting between poses for => {self.interval} seconds...")
+            print(f"## SequenceManager Class - Waiting between poses for => {self.interval} seconds...")
             time.sleep(self.interval)
             
             # Update index based on direction

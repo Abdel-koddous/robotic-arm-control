@@ -70,7 +70,7 @@ class SerialInterface:
                         self.update_joint_status(serial_output)
                         print(f"Joints status: {self.joints_status}")
                     if "done" in serial_output and "running" not in self.joints_status:
-                        print("All joints movements are completed... Monitoring is over.")
+                        print("#### All joints movements are COMPLETED... Monitoring is over.")
                         self.serial_connection.reset_input_buffer()  # Flush the input buffer of serial connection
                         self.move_command_monitoring_done = True
                         break
@@ -79,8 +79,11 @@ class SerialInterface:
 
                 else:
                     serial_connection_waiting_count += 1
-                    if serial_connection_waiting_count > no_data_received_message_period / serial_connection_monitoring_period:
-                        print("Monitoring - No data received yet from the serial connection...")
+                    if serial_connection_waiting_count > (
+                        no_data_received_message_period / serial_connection_monitoring_period
+                    ):
+                        print(f"Monitoring - No data received from the serial connection in the last "
+                              f"{no_data_received_message_period} seconds...")
                         serial_connection_waiting_count = 0
                                
                 time.sleep(serial_connection_monitoring_period) # 100 ms
