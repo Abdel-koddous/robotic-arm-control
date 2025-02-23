@@ -14,15 +14,24 @@ class RoboticArmControlApp(QWidget):
         self.serial_interface = SerialInterface()
         self.joint_values = [0, 0, 0, 0, 0]  # Updated for 5 joints
         self.sequence_manager = SequenceManager(self.serial_interface)
+        self.sequence_manager.current_pose_changed.connect(self.update_current_pose_label)      
         self.sequence_thread = None
         self.joint_status_labels = {}
-        
         # Create and start status update timer
         self.status_timer = QTimer()
         self.status_timer.timeout.connect(self.update_all_joint_status)
         self.status_timer.start(100)  # Update every 100ms
 
         self.init_ui()
+
+    def update_current_pose_label(self, current_pose_index, total_poses):
+        """
+        Update the current pose label with the current pose index 
+        in the running sequence out of total poses.
+        """
+        self.current_pose_label.setText(
+            f"{current_pose_index + 1} / {total_poses}"
+        )
 
     def create_joint_control(self, joint_name, joint_id, initial_value):
         """
@@ -211,6 +220,13 @@ class RoboticArmControlApp(QWidget):
         self.sequence_status_label = QLabel("Idle")
         self.sequence_status_label.setStyleSheet("color: gray;")
         status_layout.addWidget(self.sequence_status_label)
+
+        status_layout.addWidget(QLabel("Current Pose"))
+        self.current_pose_label = QLabel(f"0 / {len(self.sequence_manager.poses)}")
+        self.current_pose_label.setStyleSheet("color: gray;")
+        status_layout.addWidget(self.current_pose_label)
+
+
         sequence_layout.addLayout(status_layout)
         
 
@@ -242,12 +258,17 @@ class RoboticArmControlApp(QWidget):
         return connection_layout
 
     def toggle_connection(self):
+
         if self.serial_interface.serial_connection and self.serial_interface.serial_connection.is_open:
             self.serial_interface.close()
             self.connect_button.setText("Connect")
             self.connection_status.setText("Not Connected")
             self.connection_status.setStyleSheet("color: red;")
             self.port_input.setEnabled(True)
+
+            for joint_id in range(len(self.serial_interface.joints_status)):
+                self.serial_interface.set_joint_status(joint_id, "idle")
+
         else:
             port = self.port_input.text()
             self.serial_interface.set_port(port)

@@ -20,6 +20,10 @@ class SerialInterface:
     def get_move_command_monitoring_done(self):
         """Return the status of move joint command monitoring."""
         return self.move_command_monitoring_done
+    
+    def set_joint_status(self, joint_id, joint_status):
+        """Set the status of a joint."""
+        self.joints_status[joint_id] = joint_status
 
     def connect(self):
         success = False

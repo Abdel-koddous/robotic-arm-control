@@ -1,5 +1,5 @@
 import time
-
+from PyQt6.QtCore import QObject, pyqtSignal
 class Pose:
     """
     Represents a pose of the robotic arm with joint values.
@@ -10,11 +10,14 @@ class Pose:
     def __str__(self):
         return f"Pose(joints={self.joint_values})"
 
-class SequenceManager:
+class SequenceManager(QObject):
     """
     Manage a sequence of poses for a robotic arm, handling execution and monitoring.
     """
+    current_pose_changed = pyqtSignal(int, int)
+
     def __init__(self, serial_interface):
+        super().__init__()
         self.serial_interface = serial_interface
         self.poses = []  # List to store poses
         self.interval = 1  # Default interval in seconds between poses
@@ -76,6 +79,7 @@ class SequenceManager:
         while self.is_playing:
             # Execute current pose
             print(f"## SequenceManager Class - Executing Pose Number => {self.current_pose_index + 1} / {len(self.poses)} <=")
+            self.current_pose_changed.emit(self.current_pose_index, len(self.poses))
             current_pose = self.poses[self.current_pose_index]
             self.execute_pose(current_pose)
             
@@ -110,6 +114,7 @@ class SequenceManager:
     def stop_sequence(self):
         """Stop the sequence playback"""
         self.is_playing = False
+        self.current_pose_changed.emit(-1, 0)
         print("Sequence playback stopped") 
 
 
