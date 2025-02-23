@@ -14,15 +14,24 @@ class RoboticArmControlApp(QWidget):
         self.serial_interface = SerialInterface()
         self.joint_values = [0, 0, 0, 0, 0]  # Updated for 5 joints
         self.sequence_manager = SequenceManager(self.serial_interface)
+        self.sequence_manager.current_pose_changed.connect(self.update_current_pose_label)      
         self.sequence_thread = None
         self.joint_status_labels = {}
-        
         # Create and start status update timer
         self.status_timer = QTimer()
         self.status_timer.timeout.connect(self.update_all_joint_status)
         self.status_timer.start(100)  # Update every 100ms
 
         self.init_ui()
+
+    def update_current_pose_label(self, current_pose_index, total_poses):
+        """
+        Update the current pose label with the current pose index 
+        in the running sequence out of total poses.
+        """
+        self.current_pose_label.setText(
+            f"{current_pose_index + 1} / {total_poses}"
+        )
 
     def create_joint_control(self, joint_name, joint_id, initial_value):
         """
@@ -31,14 +40,14 @@ class RoboticArmControlApp(QWidget):
         joint_layout = QHBoxLayout()  
         
         label = QLabel(f"{joint_name} Joint: {initial_value}")
-        label.setMinimumWidth(100)
+        label.setMinimumWidth(120)  # Set minimum width for the joint control text
         joint_layout.addWidget(label)
 
         slider = QSlider(Qt.Orientation.Horizontal)
         slider.setTickPosition(QSlider.TickPosition.TicksBelow)
-        slider.setTickInterval(100)
-        slider.setRange(0, 10000)
-        slider.setValue(initial_value)
+        slider.setTickInterval(110)
+        slider.setRange(-7000, 7000)
+        slider.setValue(0)
         slider.setMinimumWidth(200)
         joint_layout.addWidget(slider)
 
@@ -61,8 +70,8 @@ class RoboticArmControlApp(QWidget):
         slider.valueChanged.connect(lambda value: self.update_label(label, joint_name, value))
         slider.valueChanged.connect(lambda value: value_input.setText(str(value)))  
         slider.valueChanged.connect(lambda value: self.set_joint_value(joint_id, value))
-        value_input.textChanged.connect(lambda text: slider.setValue(int(text)) if text.isdigit() else slider.setValue(0))
-        value_input.textChanged.connect(lambda text: self.set_joint_value(joint_id, int(text)) if text.isdigit() else self.set_joint_value(joint_id, 0))
+        value_input.textChanged.connect(lambda text: slider.setValue(int(text)) if text.lstrip('-').isdigit() else slider.setValue(0))
+        value_input.textChanged.connect(lambda text: self.set_joint_value(joint_id, int(text)) if text.lstrip('-').isdigit() else self.set_joint_value(joint_id, 0))
         
         return joint_layout  
     
@@ -85,11 +94,11 @@ class RoboticArmControlApp(QWidget):
         gripper_layout = QHBoxLayout()
 
         open_button = QPushButton("Open Gripper (Disabled for now)")
-        open_button.clicked.connect(lambda: self.send_command(3, 0))
+        open_button.clicked.connect(lambda: self.send_command(6, 0))
         gripper_layout.addWidget(open_button)
 
         close_button = QPushButton("Close Gripper (Disabled for now)")
-        close_button.clicked.connect(lambda: self.send_command(3, 1))
+        close_button.clicked.connect(lambda: self.send_command(6, 1))
         gripper_layout.addWidget(close_button)
 
         return gripper_layout
@@ -159,7 +168,7 @@ class RoboticArmControlApp(QWidget):
     def create_sequence_control(self):
         """Create the sequence control panel"""
         sequence_layout = QVBoxLayout()
-        
+
         # Buttons layout
         buttons_layout = QHBoxLayout()
         
@@ -204,7 +213,23 @@ class RoboticArmControlApp(QWidget):
         self.poses_list = QListWidget()
         self.poses_list.setMinimumHeight(100)
         sequence_layout.addWidget(self.poses_list)
+    
+           # Status label
+        status_layout = QHBoxLayout()
+        status_layout.addWidget(QLabel("Sequence Status"))
+        self.sequence_status_label = QLabel("Idle")
+        self.sequence_status_label.setStyleSheet("color: gray;")
+        status_layout.addWidget(self.sequence_status_label)
+
+        status_layout.addWidget(QLabel("Current Pose"))
+        self.current_pose_label = QLabel(f"0 / {len(self.sequence_manager.poses)}")
+        self.current_pose_label.setStyleSheet("color: gray;")
+        status_layout.addWidget(self.current_pose_label)
+
+
+        sequence_layout.addLayout(status_layout)
         
+
         return sequence_layout
 
     def create_connection_control(self):
@@ -233,12 +258,17 @@ class RoboticArmControlApp(QWidget):
         return connection_layout
 
     def toggle_connection(self):
+
         if self.serial_interface.serial_connection and self.serial_interface.serial_connection.is_open:
             self.serial_interface.close()
             self.connect_button.setText("Connect")
             self.connection_status.setText("Not Connected")
             self.connection_status.setStyleSheet("color: red;")
             self.port_input.setEnabled(True)
+
+            for joint_id in range(len(self.serial_interface.joints_status)):
+                self.serial_interface.set_joint_status(joint_id, "idle")
+
         else:
             port = self.port_input.text()
             self.serial_interface.set_port(port)
@@ -338,16 +368,25 @@ class RoboticArmControlApp(QWidget):
         label.setText(f"{joint_name} Joint: {value}")
 
     def send_command(self, joint_id, value):
-        command = f"m{joint_id}0{value}"
-        #print(f"Sending command: {command}")
-        if joint_id == 3:
+        # Determine if value is negative and create appropriate command
+        direction = "1" if value < 0 else "0"
+        abs_value = abs(value)
+        command = f"m{joint_id}{direction}{abs_value}"
+        
+        if joint_id == 6:
             self.serial_interface.send_command(command)
         else:
             self.serial_interface.send_move_joint_command(command)
-    
+
     def send_move_all_joints_command(self):
-        command = f"m00{self.joint_values[0]}m10{self.joint_values[1]}m20{self.joint_values[2]}m30{self.joint_values[3]}m40{self.joint_values[4]}"
-        self.serial_interface.send_move_joint_command(command)
+        """Send command to move all joints to their respective target positions."""
+        move_all_joints_command = ""
+        for i, joint_value in enumerate(self.joint_values):
+            direction = "0" if joint_value >= 0 else "1"
+            abs_value = abs(joint_value)
+            move_all_joints_command += f"m{i}{direction}{abs_value}"
+
+        self.serial_interface.send_move_joint_command(move_all_joints_command)
 
     def add_current_pose(self):
         """Add current joint values as a pose to the sequence"""
@@ -367,6 +406,9 @@ class RoboticArmControlApp(QWidget):
             print("Sequence is already playing")
             return
         
+        self.sequence_status_label.setText("Running...")
+        self.sequence_status_label.setStyleSheet("color: #00FF00;")  # Green color
+        
         self.sequence_thread = threading.Thread(
             target=self.sequence_manager.play_sequence,
             kwargs={'back_and_forth': True}
@@ -378,7 +420,10 @@ class RoboticArmControlApp(QWidget):
         self.sequence_manager.stop_sequence()
         if self.sequence_thread:
             self.sequence_thread.join()
-    
+        
+        self.sequence_status_label.setText("Stopped")
+        self.sequence_status_label.setStyleSheet("color: red;")
+
     def clean_up(self):
         self.stop_sequence()
         self.serial_interface.close()
@@ -387,6 +432,8 @@ class RoboticArmControlApp(QWidget):
         """Clear the sequence and update the display"""
         self.sequence_manager.clear_sequence()
         self.update_poses_list()  # Update the UI list after clearing
+        self.sequence_status_label.setText("Idle")
+        self.sequence_status_label.setStyleSheet("color: gray;")
 
     def update_all_joint_status(self):
         """Update all joint status indicators based on SerialInterface status"""
