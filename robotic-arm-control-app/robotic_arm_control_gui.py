@@ -5,6 +5,8 @@ from serial_interface_control import SerialInterface
 from sequence_manager import SequenceManager
 import threading
 from kinematics.angles_steps_conversion import angle_to_steps, init_joints_config
+from kinematics.forward_kinematics import load_robot_urdf
+
 class RoboticArmControlApp(QWidget):
     """
     Main application class for the robotic arm control GUI.
@@ -23,6 +25,7 @@ class RoboticArmControlApp(QWidget):
         self.status_timer.start(100)  # Update every 100ms
 
         self.joints_mechanical_config = init_joints_config()
+        self.robot = load_robot_urdf()
 
         self.init_ui()
 

@@ -1,3 +1,5 @@
+PyQt6
+pyserial
+numpy<2 # for roboticstoolbox
 roboticstoolbox-python
-numpy<2
 
