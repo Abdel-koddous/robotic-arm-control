@@ -16,6 +16,29 @@ def load_robot_urdf(urdf_filename='mogarobot.urdf.xacro'):
     print(robot)
     return robot
 
+def compute_forward_kinematics(robot_model, input_joint_angles, unit='deg'):
+    """
+    Calculate the forward kinematics of the robot
+    """
+    if unit == 'deg':
+        input_joint_angles_deg = np.deg2rad(input_joint_angles)
+        transform_matrix = robot_model.fkine(input_joint_angles_deg)
+    elif unit == 'rad':
+        transform_matrix = robot_model.fkine(input_joint_angles)
+    else:
+        print(f"Invalid unit: {unit}")
+        transform_matrix = None
+
+    print(f"Transform Matrix:\n{transform_matrix}")
+    print("########################################################")
+    print(f"Input  | Robot Joint Angles ({unit}):", input_joint_angles)
+    #  Extracting Position & Orientation
+    print(f"Output | End Effector Position (x,y,z): {transform_matrix.t}")
+    print(f"Output | End Effector Roll-Pitch-Yaw ({unit}): {transform_matrix.rpy()}")
+    print("########################################################")
+    
+    return transform_matrix
+
 
 if __name__ == "__main__":
 
@@ -26,14 +49,5 @@ if __name__ == "__main__":
     mogarobot = load_robot_urdf('mogarobot.urdf.xacro')
     #q = np.array([0, 0, 0, 0, 0])
     q = np.array([0.687, 1.544, -0.594, -1.002, 1.069])
-    T = mogarobot.fkine(q)
 
-    print(T)
-    print("########################################################")
-    print("Input | Robot Joint Angles (radians):", q)
-    print("Input | Robot Joint Angles (degrees):", np.rad2deg(q))
-    #  Extracting Position & Orientation
-    print("Output | End Effector Position (x,y,z):", T.t)
-    #print("Rotation matrix:\n", T.R)
-    print("Output | End Effector Roll-Pitch-Yaw (radians):", T.rpy())
-    print("Output | End Effector Roll-Pitch-Yaw (degrees):", np.rad2deg(T.rpy()))
+    compute_forward_kinematics(mogarobot, q, unit='rad')
