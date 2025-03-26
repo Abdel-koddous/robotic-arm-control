@@ -1,0 +1,3 @@
+roboticstoolbox-python
+numpy<2
+
