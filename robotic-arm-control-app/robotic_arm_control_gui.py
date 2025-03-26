@@ -4,7 +4,7 @@ from PyQt6.QtGui import QIcon
 from serial_interface_control import SerialInterface
 from sequence_manager import SequenceManager
 import threading
-
+from kinematics.angles_steps_conversion import angle_to_steps, init_joints_config
 class RoboticArmControlApp(QWidget):
     """
     Main application class for the robotic arm control GUI.
@@ -21,6 +21,8 @@ class RoboticArmControlApp(QWidget):
         self.status_timer = QTimer()
         self.status_timer.timeout.connect(self.update_all_joint_status)
         self.status_timer.start(100)  # Update every 100ms
+
+        self.joints_mechanical_config = init_joints_config()
 
         self.init_ui()
 
@@ -370,11 +372,15 @@ class RoboticArmControlApp(QWidget):
         """
         label.setText(f"{joint_name} Joint")
 
-    def send_command(self, joint_id, value):
+    def send_command(self, joint_id, angle_value):
+        """
+        Send a command to the serial interface to move a joint to a given angle.
+        """
         # Determine if value is negative and create appropriate command
-        direction = "1" if value < 0 else "0"
-        abs_value = abs(value)
-        command = f"m{joint_id}{direction}{abs_value}"
+        direction = "1" if angle_value < 0 else "0"
+        steps_value = angle_to_steps(angle_value, self.joints_mechanical_config[joint_id].gear_reduction,
+                                     self.joints_mechanical_config[joint_id].microstepping)
+        command = f"m{joint_id}{direction}{abs(steps_value)}"
         
         if joint_id == 6:
             self.serial_interface.send_command(command)
@@ -386,8 +392,9 @@ class RoboticArmControlApp(QWidget):
         move_all_joints_command = ""
         for i, joint_value in enumerate(self.joint_values):
             direction = "0" if joint_value >= 0 else "1"
-            abs_value = abs(joint_value)
-            move_all_joints_command += f"m{i}{direction}{abs_value}"
+            steps_value = angle_to_steps(joint_value, self.joints_mechanical_config[i].gear_reduction,
+                                         self.joints_mechanical_config[i].microstepping)
+            move_all_joints_command += f"m{i}{direction}{abs(steps_value)}"
 
         self.serial_interface.send_move_joint_command(move_all_joints_command)
 

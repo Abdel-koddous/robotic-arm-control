@@ -23,7 +23,7 @@ def angle_to_steps(angle, gear_reduction, microstepping):
     Convert an input angle to number of steps to be sent to the stepper motor.
     """
     steps_per_revolution = 200 * (1/gear_reduction) * (1/microstepping)
-    steps_matching_angle = angle * steps_per_revolution / 360
+    steps_matching_angle = int(angle * steps_per_revolution / 360)
     print(
         f"Angle: {angle} degrees | Gear reduction: 1/{int(1/gear_reduction)} | "
         f"Microstepping: 1/{int(1/microstepping)} => Steps: {steps_matching_angle}"
@@ -32,7 +32,7 @@ def angle_to_steps(angle, gear_reduction, microstepping):
     return steps_matching_angle
 
 
-def init_joints_configs():
+def init_joints_config():
     """
     Initialize the joint configurations for the robotic arm with their given 
     gear reduction and microstepping values.
@@ -50,6 +50,11 @@ def init_joints_configs():
         joints_configs.append(joint)
         print(f"Joint {joint_index}: {joint}")
 
+    if len(joints_configs) != num_joints:
+        print("kinematics.angles_steps_conversion | init_joints_config | Error")
+    else:
+        print("kinematics.angles_steps_conversion | init_joints_config | Done")
+  
     return joints_configs
 
 
@@ -68,7 +73,7 @@ if __name__ == "__main__":
     angle_to_steps(90, 1/5, 1/4)
 
     # Example 5: Initialize the joint configurations
-    robotic_arm_joints_configs = init_joints_configs()
+    robotic_arm_joints_configs = init_joints_config()
 
     angle_to_steps(180, robotic_arm_joints_configs[4].gear_reduction,
                         robotic_arm_joints_configs[4].microstepping)
