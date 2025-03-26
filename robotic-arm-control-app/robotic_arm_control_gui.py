@@ -39,14 +39,14 @@ class RoboticArmControlApp(QWidget):
         """
         joint_layout = QHBoxLayout()  
         
-        label = QLabel(f"{joint_name} Joint: {initial_value}")
-        label.setMinimumWidth(120)  # Set minimum width for the joint control text
+        label = QLabel(f"{joint_name} Joint")
+        label.setMinimumWidth(80)  # Set minimum width for the joint control text
         joint_layout.addWidget(label)
 
         slider = QSlider(Qt.Orientation.Horizontal)
         slider.setTickPosition(QSlider.TickPosition.TicksBelow)
         slider.setTickInterval(110)
-        slider.setRange(-7000, 7000)
+        slider.setRange(-180, 180)
         slider.setValue(0)
         slider.setMinimumWidth(200)
         joint_layout.addWidget(slider)
@@ -303,7 +303,7 @@ class RoboticArmControlApp(QWidget):
         main_layout.addWidget(connection_group)
 
         # Joint Controls Group
-        joints_group = QGroupBox("Joint Controls")
+        joints_group = QGroupBox("Joint Controls (degrees)")
         joints_group.setStyleSheet("""
             QGroupBox {
                 border: 2px solid #555555;
@@ -365,7 +365,10 @@ class RoboticArmControlApp(QWidget):
         self.setLayout(main_layout)
 
     def update_label(self, label, joint_name, value):
-        label.setText(f"{joint_name} Joint: {value}")
+        """
+        Update the label text to display the joint name and value when the slider is moved
+        """
+        label.setText(f"{joint_name} Joint")
 
     def send_command(self, joint_id, value):
         # Determine if value is negative and create appropriate command
