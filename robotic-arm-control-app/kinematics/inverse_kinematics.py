@@ -2,8 +2,9 @@ print("######### Inverse Kinematics Test ###########")
 import numpy as np
 from roboticstoolbox import Robot
 import os
-from forward_kinematics import load_robot_urdf
+#from kinematics.forward_kinematics import load_robot_urdf
 from spatialmath import SE3
+from kinematics.forward_kinematics import load_robot_urdf
 
 def compute_inverse_kinematics(robot, target_position, target_orientation):
     """
@@ -23,16 +24,18 @@ def compute_inverse_kinematics(robot, target_position, target_orientation):
     for solution in q_ik:
         print("solution:", solution)
     print("########################################################")
-    print("Inverse Kinematics | Input | Target Pose:", target_pose.t)
-    print("Inverse Kinematics | Output | Robotic arm joints angles (deg):", np.round(np.rad2deg(q_ik.q), 2))
+    print(f"Inverse Kinematics | Input | Target Pose: Position: {target_position} Orientation: {target_orientation}")
+    print(f"Inverse Kinematics | Output | Robotic arm joints angles (deg): {np.round(np.rad2deg(q_ik.q), 2)}")
     print("########################################################")
+
+    return q_ik
 
 
 if __name__ == "__main__":
     # Load the robot model
     mogarobot = load_robot_urdf()
     # Define a target pose (position and orientation)
-    target_position = [0, 0, 0]
-    target_orientation = [0.0, 0.0, 90]
+    target_position = [20, 20, 10]
+    target_orientation = [0.0, 90.0, 0.0]
 
     compute_inverse_kinematics(mogarobot, target_position, target_orientation)
