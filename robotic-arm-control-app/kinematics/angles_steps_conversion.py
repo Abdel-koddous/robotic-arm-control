@@ -39,8 +39,8 @@ def init_joints_config():
     """
     num_joints = 5
     JointConfig = namedtuple("JointConfig", ["gear_reduction", "microstepping"])
-    joints_gear_reduction = [1/5, 1/20, 1/10, 1/3, 1/1]
-    joints_microstepping = [1/4, 1/8, 1/4, 1/4, 1/1]
+    joints_gear_reduction = [1/7, 1/40, 1/25, 1/4, 1/1]
+    joints_microstepping = [1/4, 1/2, 1/2, 1/4, 1/16]
 
     joints_configs = []
     for joint_index in range(num_joints):

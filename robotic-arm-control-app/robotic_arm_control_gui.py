@@ -5,7 +5,7 @@ from serial_interface_control import SerialInterface
 from sequence_manager import SequenceManager
 import threading
 from kinematics.angles_steps_conversion import angle_to_steps, init_joints_config
-from kinematics.forward_kinematics import load_robot_urdf
+from kinematics.forward_kinematics import load_robot_urdf, compute_forward_kinematics
 
 class RoboticArmControlApp(QWidget):
     """
@@ -400,6 +400,10 @@ class RoboticArmControlApp(QWidget):
             move_all_joints_command += f"m{i}{direction}{abs(steps_value)}"
 
         self.serial_interface.send_move_joint_command(move_all_joints_command)
+
+        print(f"Joints values: {self.joint_values}")
+        compute_forward_kinematics(self.robot, self.joint_values, unit='deg')
+        
 
     def add_current_pose(self):
         """Add current joint values as a pose to the sequence"""

@@ -29,12 +29,13 @@ def compute_forward_kinematics(robot_model, input_joint_angles, unit='deg'):
         print(f"Invalid unit: {unit}")
         transform_matrix = None
 
-    print(f"Transform Matrix:\n{transform_matrix}")
+    #print(f"Transform Matrix:\n{transform_matrix}")
     print("########################################################")
-    print(f"Input  | Robot Joint Angles ({unit}):", input_joint_angles)
+    print(f"Forward Kinematics | Input  | Robot Joint Angles ({unit}):", input_joint_angles)
     #  Extracting Position & Orientation
-    print(f"Output | End Effector Position (x,y,z): {transform_matrix.t}")
-    print(f"Output | End Effector Roll-Pitch-Yaw ({unit}): {transform_matrix.rpy()}")
+    end_effector_position = np.round(transform_matrix.t*10, 2)
+    print(f"Forward Kinematics | Output | End Effector Position (x,y,z): {end_effector_position}")
+    print(f"Forward Kinematics | Output | End Effector Roll-Pitch-Yaw ({unit}): {np.rad2deg(transform_matrix.rpy())}")
     print("########################################################")
     
     return transform_matrix
