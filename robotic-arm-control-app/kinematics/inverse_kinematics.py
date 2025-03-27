@@ -21,8 +21,8 @@ def compute_inverse_kinematics(robot, target_position, target_orientation):
     q_ik = robot.ikine_LM(target_pose) # Returns an IK solution object
 
     print(type(q_ik))
-    for solution in q_ik:
-        print("solution:", solution)
+    for i, solution in enumerate(q_ik):
+        print(f"Solutions vector element {i}: {solution}")
     print("########################################################")
     print(f"Inverse Kinematics | Input | Target Pose: Position: {target_position} Orientation: {target_orientation}")
     print(f"Inverse Kinematics | Output | Robotic arm joints angles (deg): {np.round(np.rad2deg(q_ik.q), 2)}")

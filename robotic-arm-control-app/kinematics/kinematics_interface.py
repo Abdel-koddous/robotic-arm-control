@@ -13,6 +13,7 @@ from kinematics.inverse_kinematics import compute_inverse_kinematics
 
 from roboticstoolbox import Robot
 from spatialmath import SE3
+from time import sleep
 ROBOTICS_TOOLBOX_AVAILABLE = True
 
 # Import the forward_kinematics module (contains fallback implementation)
@@ -22,7 +23,7 @@ class KinematicsInterface(QWidget):
     """
     Interface for performing inverse and forward kinematics calculations.
     """
-    def __init__(self, parent=None, robot=None, joint_values=None, set_joints_callback=None):
+    def __init__(self, parent=None, robot=None, joint_values=None, set_joints_config_callback=None, move_joints_callback=None):
         """
         Initialize the kinematics interface.
         
@@ -30,13 +31,14 @@ class KinematicsInterface(QWidget):
             parent: Parent widget
             robot: Robot model for kinematics calculations
             joint_values: Reference to the current joint values
-            set_joints_callback: Callback function to update main app joint values
+            set_joints_config_callback: Callback function to update main app joint values
+            move_joints_callback: Callback function to move main app joints
         """
         super().__init__(parent)
         self.robot = robot
         self.joint_values = joint_values
-        self.set_joints_callback = set_joints_callback
-        
+        self.set_joints_config_callback = set_joints_config_callback
+        self.move_joints_callback = move_joints_callback
         # End effector current position/orientation (will be updated by forward kinematics)
         self.current_position = {"x": 0.0, "y": 0.0, "z": 0.0}
         self.current_orientation = {"roll": 0.0, "pitch": 0.0, "yaw": 0.0}
@@ -103,11 +105,21 @@ class KinematicsInterface(QWidget):
         target_layout.addWidget(QLabel("Yaw:"), 2, 2)
         self.yaw_target = QLineEdit("0.0")
         target_layout.addWidget(self.yaw_target, 2, 3)
+
+        # Calculate IK button
+        calculate_ik_button = QPushButton("Calculate Inverse Kinematics")
+        calculate_ik_button.clicked.connect(self.calculate_inverse_kinematics)
+        target_layout.addWidget(calculate_ik_button, 4, 0, 1, 4)
         
-        # Set target to current position button
-        set_target_button = QPushButton("Set Target to Current Position")
-        set_target_button.clicked.connect(self.set_target_to_current)
-        target_layout.addWidget(set_target_button, 3, 0, 1, 4)
+        # Apply solution button
+        apply_solution_button = QPushButton("Apply Solution to Joints Sliders")
+        apply_solution_button.clicked.connect(self.apply_ik_solution)
+        target_layout.addWidget(apply_solution_button, 5, 0, 1, 4)
+        
+        # Move joints button
+        move_joints_button = QPushButton("Go to IK solution")
+        move_joints_button.clicked.connect(self.move_joints)
+        target_layout.addWidget(move_joints_button, 6, 0, 1, 4)
         
         target_group.setLayout(target_layout)
         ik_layout.addWidget(target_group)
@@ -142,16 +154,7 @@ class KinematicsInterface(QWidget):
         
         ik_layout.addLayout(units_layout)
         
-        # Calculate IK button
-        calculate_ik_button = QPushButton("Calculate Inverse Kinematics")
-        calculate_ik_button.clicked.connect(self.calculate_inverse_kinematics)
-        ik_layout.addWidget(calculate_ik_button)
-        
-        # Apply solution button
-        apply_solution_button = QPushButton("Apply Solution to Joints")
-        apply_solution_button.clicked.connect(self.apply_ik_solution)
-        ik_layout.addWidget(apply_solution_button)
-        
+
         ik_group.setLayout(ik_layout)
         main_layout.addWidget(ik_group)
         
@@ -203,22 +206,7 @@ class KinematicsInterface(QWidget):
         self.roll_orientation.setText(f"{self.current_orientation['roll']:.2f}")
         self.pitch_orientation.setText(f"{self.current_orientation['pitch']:.2f}")
         self.yaw_orientation.setText(f"{self.current_orientation['yaw']:.2f}")
-    
-    def set_target_to_current(self):
-        """Set the target position/orientation to the current values."""
-        # Copy current position to target fields
-        self.x_target.setText(self.x_position.text())
-        self.y_target.setText(self.y_position.text())
-        self.z_target.setText(self.z_position.text())
         
-        self.roll_target.setText(self.roll_orientation.text())
-        self.pitch_target.setText(self.pitch_orientation.text())
-        self.yaw_target.setText(self.yaw_orientation.text())
-        
-        # Update target values
-        self.target_position = self.current_position.copy()
-        self.target_orientation = self.current_orientation.copy()
-    
     def calculate_inverse_kinematics(self):
         """Calculate inverse kinematics for the given target."""
         try:
@@ -280,9 +268,16 @@ class KinematicsInterface(QWidget):
                     self.target_orientation["yaw"]
                 ]
             
-            sol = compute_inverse_kinematics(self.robot, position, orientation)
-
-            q_sol = sol.q
+            compute_rounds = 10
+            for i in range(compute_rounds):
+                sol = compute_inverse_kinematics(self.robot, position, orientation)
+                q_sol = sol.q
+                if any(abs(angle) > 120 for angle in np.rad2deg(q_sol)):
+                    print(f"IK solution {i+1} is dropped (angle > 120) => {q_sol}")
+                    continue
+                else:
+                    print(f"IK solution {i+1} is validated => {q_sol}")
+                    break
                 
             # Convert to degrees if needed
             if self.angle_unit == "deg":
@@ -302,18 +297,38 @@ class KinematicsInterface(QWidget):
     
     def apply_ik_solution(self):
         """Apply the first IK solution to the robot joints."""
-        if hasattr(self, 'ik_solutions') and self.ik_solutions and self.set_joints_callback:
+        if hasattr(self, 'ik_solutions') and self.ik_solutions and self.set_joints_config_callback:
             try:
                 # Use the first solution by default
                 solution = self.ik_solutions[0]
                 
                 # Call the callback to set the joint values in the main app
-                self.set_joints_callback(solution)
+                self.set_joints_config_callback(solution)
                 
-                self.solutions_display.setText(f"Applied solution: {[round(val, 2) for val in solution]}")
+                self.solutions_display.setText(f"IK solution applied to sliders: {[round(val, 2) for val in solution]}")
                 print(f"Applied IK solution: {solution}")
             except Exception as e:
                 self.solutions_display.setText(f"Error applying solution: {str(e)}")
                 print(f"Error applying IK solution: {e}")
         else:
             self.solutions_display.setText("No solutions available to apply.") 
+            
+    def move_joints(self):
+        """Move the robot joints to the target pose."""
+        if hasattr(self, 'ik_solutions') and self.ik_solutions and self.move_joints_callback:
+            try:
+                # Use the first solution by default
+                solution = self.ik_solutions[0]
+                
+                self.apply_ik_solution()
+                # Call the callback to move the joints in the main app
+                self.move_joints_callback()
+
+                self.solutions_display.setText(f"IK solution sent to stepper motors: {[round(val, 2) for val in solution]}")
+                print(f"IK solution sent to arduino serial interface: {[round(val, 2) for val in solution]}")
+            except Exception as e:
+                self.solutions_display.setText(f"Error moving joints: {str(e)}")
+                print(f"Error moving joints: {e}")
+        else:
+            self.solutions_display.setText("No solutions available to move.")
+    

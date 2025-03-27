@@ -516,7 +516,8 @@ class RoboticArmControlApp(QMainWindow):
         self.kinematics_panel = KinematicsInterface(
             robot=self.control_panel.robot,
             joint_values=self.control_panel.joint_values,
-            set_joints_callback=self.control_panel.set_joint_values
+            set_joints_config_callback=self.control_panel.set_joint_values,
+            move_joints_callback=self.control_panel.send_move_all_joints_command
         )
         self.tab_widget.addTab(self.kinematics_panel, "Kinematics")
         
