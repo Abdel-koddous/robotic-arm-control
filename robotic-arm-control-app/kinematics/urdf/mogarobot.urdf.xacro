@@ -66,6 +66,8 @@
     
     <link name="end_effector_frame"/>
 
+    <link name="white_gripper_link"/>
+
 
     <joint name="world_base_joint" type="fixed">
         <parent link="world"/>
@@ -119,5 +121,10 @@
         <origin xyz="0.2 0 0" rpy="0 0 0"/>
     </joint>
 
-</robot>
+    <joint name="end_effector_gripper_joint" type="fixed">
+        <parent link="end_effector_frame"/>
+        <child link="white_gripper_link"/>
+        <origin xyz="1.2 0 0" rpy="0 0 0"/>
+    </joint>
 
+</robot>

@@ -219,12 +219,8 @@ class KinematicsInterface(QWidget):
             self.target_orientation["pitch"] = float(self.pitch_target.text())
             self.target_orientation["yaw"] = float(self.yaw_target.text())
             
-            # If roboticstoolbox is not available, use analytical inverse kinematics
-            if not ROBOTICS_TOOLBOX_AVAILABLE or self.robot is None:
-                solutions = self.analytical_inverse_kinematics()
-            else:
-                # Use roboticstoolbox for inverse kinematics
-                solutions = self.robotics_toolbox_inverse_kinematics()
+            # Use roboticstoolbox for inverse kinematics
+            solutions = self.robotics_toolbox_inverse_kinematics()
             
             # Save solutions for later use
             self.ik_solutions = solutions
@@ -254,19 +250,20 @@ class KinematicsInterface(QWidget):
             # Create the target pose
             position = [self.target_position["x"], self.target_position["y"], self.target_position["z"]]
             
-            # Convert orientation to radians if in degrees
-            if self.angle_unit == "deg":
-                orientation = [
-                    np.radians(self.target_orientation["roll"]),
-                    np.radians(self.target_orientation["pitch"]),
-                    np.radians(self.target_orientation["yaw"])
-                ]
-            else:
-                orientation = [
-                    self.target_orientation["roll"],
-                    self.target_orientation["pitch"],
-                    self.target_orientation["yaw"]
-                ]
+            # Convert orientation to radians if in degrees 
+            # NO THANK YOU!!!!!!!!!!!!!!!!!!
+        #    if self.angle_unit == "deg":
+        #        orientation = [
+        #            np.radians(self.target_orientation["roll"]),
+        #            np.radians(self.target_orientation["pitch"]),
+        #            np.radians(self.target_orientation["yaw"])
+        #        ]
+        #    else:
+            orientation = [
+                self.target_orientation["roll"],
+                self.target_orientation["pitch"],
+                self.target_orientation["yaw"]
+            ]
             
             compute_rounds = 10
             for i in range(compute_rounds):
