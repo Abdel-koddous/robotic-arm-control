@@ -161,7 +161,7 @@ class ControlPanel(QWidget):
         slider = QSlider(Qt.Orientation.Horizontal)
         slider.setTickPosition(QSlider.TickPosition.TicksBelow)
         slider.setTickInterval(25)
-        slider.setRange(0, 100)  # Gripper range 0-100%
+        slider.setRange(0, 180)  # Gripper range 0-180 degrees, more logic to be added
         slider.setValue(self.gripper_value)
         slider.setMinimumWidth(200)
         gripper_layout.addWidget(slider)
