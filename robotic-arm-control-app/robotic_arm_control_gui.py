@@ -20,6 +20,7 @@ class ControlPanel(QWidget):
         super().__init__(parent)
         self.serial_interface = SerialInterface()
         self.joint_values = [0, 0, 0, 0, 0]  # Updated for 5 joints
+        self.gripper_value = 0
         self.sequence_manager = SequenceManager(self.serial_interface)
         self.sequence_manager.current_pose_changed.connect(self.update_current_pose_label)      
         self.sequence_thread = None
@@ -147,19 +148,60 @@ class ControlPanel(QWidget):
     
     def create_gripper_control(self):
         """
-        Create a control panel for the gripper.
+        Create a control panel for the gripper with slider, text input and set button.
         """
         gripper_layout = QHBoxLayout()
-
-        open_button = QPushButton("Open Gripper (Disabled for now)")
-        open_button.clicked.connect(lambda: self.send_command(6, 0))
-        gripper_layout.addWidget(open_button)
-
-        close_button = QPushButton("Close Gripper (Disabled for now)")
-        close_button.clicked.connect(lambda: self.send_command(6, 1))
-        gripper_layout.addWidget(close_button)
+        
+        # Add label
+        label = QLabel("Gripper Control")
+        label.setMinimumWidth(80)
+        gripper_layout.addWidget(label)
+        
+        # Add slider
+        slider = QSlider(Qt.Orientation.Horizontal)
+        slider.setTickPosition(QSlider.TickPosition.TicksBelow)
+        slider.setTickInterval(25)
+        slider.setRange(0, 100)  # Gripper range 0-100%
+        slider.setValue(self.gripper_value)
+        slider.setMinimumWidth(200)
+        gripper_layout.addWidget(slider)
+        
+        # Add value input
+        value_input = QLineEdit()
+        value_input.setText(str(self.gripper_value))
+        value_input.setFixedWidth(100)
+        gripper_layout.addWidget(value_input)
+        
+        # Add set button
+        button = QPushButton("Set")
+        button.clicked.connect(lambda: self.send_gripper_command(slider.value()))
+        button.setMinimumWidth(100)
+        gripper_layout.addWidget(button)
+        
+        # Connect signals
+        slider.valueChanged.connect(lambda value: value_input.setText(str(value)))
+        slider.valueChanged.connect(lambda value: self.set_gripper_value(value))
+        value_input.textChanged.connect(
+            lambda text: slider.setValue(int(text)) if text.isdigit() and 0 <= int(text) <= 100 else None
+        )
 
         return gripper_layout
+
+    def set_gripper_value(self, value):
+        """
+        Set the gripper value in memory.
+        """
+        self.gripper_value = value
+    
+    def send_gripper_command(self, value):
+        """
+        Send a command to control the gripper.
+        Args:
+            value: Gripper position value (0-100)
+        """
+        command = f"g{value}"
+        self.serial_interface.send_command(command)
+        print(f"Sent gripper command: {command}")
 
     def create_set_all_joints_control(self):
         control_all_joints_layout = QVBoxLayout()

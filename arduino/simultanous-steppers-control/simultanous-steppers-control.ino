@@ -69,30 +69,41 @@ void parseMultipleMoveCommands(String command) {
 
 void processCommand(String command) {
   if (command.startsWith("m")) {
-    int motorId = command.charAt(1) - '0';
-    int directionCode = command.charAt(2) - '0';
-    int steps = command.substring(3).toInt();
     
-    // Set target position based on direction code and steps specified in the command
-    int targetPosition = (directionCode == 0) ? steps : (directionCode == 1) ? -steps : 0;
+    int motorId = command.charAt(1) - '0';
 
-    /*
-    Serial.println("Motor ID: " + String(motorId));
-    Serial.println("Direction Code: " + String(directionCode));
-    Serial.println("Steps: " + String(steps));
-    Serial.println("Target Position: " + String(targetPosition));
-    */
-
-    if (roboticArmSteppers[motorId].currentPosition() == targetPosition) {
-      //Serial.println("Stepper " + String(motorId) + " is already at the target destination: " + String(roboticArmSteppers[motorId].currentPosition()));
-      Serial.println("m" + String(motorId) + String(directionCode) + String(roboticArmSteppers[motorId].currentPosition()) + "done");
-
-    } 
-    else 
+    if (motorId == 5)
     {
-      roboticArmSteppers[motorId].moveTo(targetPosition);
-      //Serial.println("Stepper " +   String(motorId) + " STARTED moving...");
-      Serial.println("m" + String(motorId) + String(directionCode) + String(steps) + "run");
+      // Gripper command value 
+      int gripperPosition = command.substring(2).toInt();
+      gripperServo.write(gripperPosition);
+    }
+    else
+    {
+      // Set target position based on direction code and steps specified in the command
+      int directionCode = command.charAt(2) - '0';
+      int steps = command.substring(3).toInt();
+
+      int targetPosition = (directionCode == 0) ? steps : (directionCode == 1) ? -steps : 0;
+
+      /*
+      Serial.println("Motor ID: " + String(motorId));
+      Serial.println("Direction Code: " + String(directionCode));
+      Serial.println("Steps: " + String(steps));
+      Serial.println("Target Position: " + String(targetPosition));
+      */
+
+      if (roboticArmSteppers[motorId].currentPosition() == targetPosition) {
+        //Serial.println("Stepper " + String(motorId) + " is already at the target destination: " + String(roboticArmSteppers[motorId].currentPosition()));
+        Serial.println("m" + String(motorId) + String(directionCode) + String(roboticArmSteppers[motorId].currentPosition()) + "done");
+
+      } 
+      else 
+      {
+        roboticArmSteppers[motorId].moveTo(targetPosition);
+        //Serial.println("Stepper " +   String(motorId) + " STARTED moving...");
+        Serial.println("m" + String(motorId) + String(directionCode) + String(steps) + "run");
+      }
     }
   }
 }
