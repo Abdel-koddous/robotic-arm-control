@@ -1,0 +1,130 @@
+<?xml version="1.0"?>
+<robot name="mogarobot">
+
+    <link name="world"/>
+        
+
+    <link name="base_link">
+        <visual>
+            <geometry>
+                <mesh filename="package://mogarobot_description/meshes/01_base_link.stl" 
+                      scale="0.01 0.01 0.01"/>
+            </geometry>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+        </visual>
+    </link>
+
+    <link name="shoulder_link">
+        <visual>
+            <geometry>
+                <mesh filename="package://mogarobot_description/meshes/02_shoulder_link.stl" 
+                      scale="0.01 0.01 0.01"/>
+            </geometry>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+        </visual>
+    </link>
+
+    <link name="arm1_link">
+        <visual>
+            <geometry>
+                <mesh filename="package://mogarobot_description/meshes/03_arm1_and_elbow_link.stl" 
+                      scale="0.01 0.01 0.01"/>
+            </geometry>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+        </visual>
+    </link>
+    
+    <link name="forearm_link">
+        <visual>
+            <geometry>
+                <mesh filename="package://mogarobot_description/meshes/04_forearm_link.stl" 
+                      scale="0.01 0.01 0.01"/>
+            </geometry>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+        </visual>
+    </link>
+    
+    <link name="wrist_link">
+        <visual>
+            <geometry>
+                <mesh filename="package://mogarobot_description/meshes/05_wrist_link.stl" 
+                      scale="0.01 0.01 0.01"/>
+            </geometry>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+        </visual>
+    </link>
+
+    <link name="hand_link">
+        <visual>
+            <geometry>
+                <mesh filename="package://mogarobot_description/meshes/06_hand_link.stl" 
+                      scale="0.01 0.01 0.01"/>
+            </geometry>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+        </visual>
+    </link>
+    
+    <link name="end_effector_frame"/>
+
+    <link name="white_gripper_link"/>
+
+
+    <joint name="world_base_joint" type="fixed">
+        <parent link="world"/>
+        <child link="base_link"/>
+        <origin xyz="0 0 0.1" rpy="0 0 0"/>
+    </joint>
+
+    <joint name="base_shoulder_joint" type="revolute">
+        <parent link="base_link"/>
+        <child link="shoulder_link"/>
+        <origin xyz="0 0 0.49" rpy="0 0 0"/>
+        <axis xyz="0 0 1"/>
+        <limit lower="-1.57" upper="1.57" effort="30" velocity="10"/>
+    </joint>
+
+    <joint name="shoulder_arm1_joint" type="revolute">
+        <parent link="shoulder_link"/>
+        <child link="arm1_link"/>
+        <origin xyz="0 -0.585 0.947" rpy="0 0 0"/>
+        <axis xyz="0 1 0"/>
+        <limit lower="-3.14" upper="3.14" effort="30" velocity="10"/>
+    </joint>
+
+    <joint name="arm1_forearm_joint" type="revolute">
+        <parent link="arm1_link"/>
+        <child link="forearm_link"/>
+        <origin xyz="0 -0.359 2.0" rpy="0 0 0"/>
+        <axis xyz="0 1 0"/>
+        <limit lower="-3.14" upper="3.14" effort="30" velocity="10"/>
+    </joint>
+
+    <joint name="forearm_wrist_joint" type="revolute">
+        <parent link="forearm_link"/>
+        <child link="wrist_link"/>
+        <origin xyz="1.544 -0.05 0" rpy="0 0 0"/>
+        <axis xyz="0 1 0"/>
+        <limit lower="-3.14" upper="3.14" effort="30" velocity="10"/>
+    </joint>
+
+    <joint name="wrist_end_effector_joint" type="revolute">
+        <parent link="wrist_link"/>
+        <child link="hand_link"/>
+        <origin xyz="0.255 0 0" rpy="0 0 0"/>
+        <axis xyz="1 0 0"/>
+        <limit lower="-3.14" upper="3.14" effort="30" velocity="10"/>
+    </joint>
+
+    <joint name="hand_end_effector_frame_joint" type="fixed">
+        <parent link="hand_link"/>
+        <child link="end_effector_frame"/>
+        <origin xyz="0.2 0 0" rpy="0 0 0"/>
+    </joint>
+
+    <joint name="end_effector_gripper_joint" type="fixed">
+        <parent link="end_effector_frame"/>
+        <child link="white_gripper_link"/>
+        <origin xyz="1.2 0 0" rpy="0 0 0"/>
+    </joint>
+
+</robot>

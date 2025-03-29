@@ -1,26 +1,37 @@
-from PyQt6.QtWidgets import QApplication, QWidget, QHBoxLayout, QSlider, QPushButton, QLabel, QVBoxLayout, QLineEdit, QListWidget, QGroupBox, QFrame
+from PyQt6.QtWidgets import (
+    QApplication, QWidget, QHBoxLayout, QSlider, QPushButton, QLabel, 
+    QVBoxLayout, QLineEdit, QListWidget, QGroupBox, QFrame, QTabWidget, QMainWindow
+)
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QIcon
 from serial_interface_control import SerialInterface
 from sequence_manager import SequenceManager
 import threading
+from kinematics.angles_steps_conversion import angle_to_steps, init_joints_config
+from kinematics.forward_kinematics import load_robot_urdf, compute_forward_kinematics
+from kinematics.kinematics_interface import KinematicsInterface
 
-class RoboticArmControlApp(QWidget):
+class ControlPanel(QWidget):
     """
-    Main application class for the robotic arm control GUI.
+    Widget containing the control panel for the robotic arm.
+    This is the main control tab.
     """
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super().__init__(parent)
         self.serial_interface = SerialInterface()
         self.joint_values = [0, 0, 0, 0, 0]  # Updated for 5 joints
         self.sequence_manager = SequenceManager(self.serial_interface)
         self.sequence_manager.current_pose_changed.connect(self.update_current_pose_label)      
         self.sequence_thread = None
         self.joint_status_labels = {}
+        
         # Create and start status update timer
         self.status_timer = QTimer()
         self.status_timer.timeout.connect(self.update_all_joint_status)
         self.status_timer.start(100)  # Update every 100ms
+
+        self.joints_mechanical_config = init_joints_config()
+        self.robot = load_robot_urdf()
 
         self.init_ui()
 
@@ -39,14 +50,14 @@ class RoboticArmControlApp(QWidget):
         """
         joint_layout = QHBoxLayout()  
         
-        label = QLabel(f"{joint_name} Joint: {initial_value}")
-        label.setMinimumWidth(120)  # Set minimum width for the joint control text
+        label = QLabel(f"{joint_name} Joint")
+        label.setMinimumWidth(80)  # Set minimum width for the joint control text
         joint_layout.addWidget(label)
 
         slider = QSlider(Qt.Orientation.Horizontal)
         slider.setTickPosition(QSlider.TickPosition.TicksBelow)
         slider.setTickInterval(110)
-        slider.setRange(-7000, 7000)
+        slider.setRange(-180, 180)
         slider.setValue(0)
         slider.setMinimumWidth(200)
         joint_layout.addWidget(slider)
@@ -86,6 +97,53 @@ class RoboticArmControlApp(QWidget):
         Get the value of a joint from the joint_values list attribute.
         """
         return self.joint_values[joint_id]
+    
+    def set_joint_values(self, values):
+        """
+        Set all joint values at once, e.g. from inverse kinematics.
+        """
+        # Only update if we have the right number of values
+        if len(values) == len(self.joint_values):
+            for i, value in enumerate(values):
+                self.joint_values[i] = value
+            
+            # Update UI elements if needed
+            self.update_joint_controls()
+    
+    def update_joint_controls(self):
+        """
+        Update joint control UI elements to match current joint values.
+        """
+        # Get the joints group from main layout
+        main_layout = self.layout()
+        joints_group = None
+        
+        # Find the joints group
+        for i in range(main_layout.count()):
+            widget = main_layout.itemAt(i).widget()
+            if isinstance(widget, QGroupBox) and widget.title() == "Joint Controls (degrees)":
+                joints_group = widget
+                break
+        
+        if joints_group:
+            joints_layout = joints_group.layout()
+            # Update each joint's controls
+            for joint_id in range(joints_layout.count()):
+                joint_layout = joints_layout.itemAt(joint_id)
+                if joint_layout:
+                    # Update each widget in the joint layout
+                    for i in range(joint_layout.count()):
+                        widget = joint_layout.itemAt(i).widget()
+                        if isinstance(widget, QLabel) and "Joint" in widget.text():
+                            # Update label
+                            joint_name = ["Base", "Shoulder", "Elbow", "Wrist", "Hand"][joint_id]
+                            widget.setText(f"{joint_name} Joint")
+                        elif isinstance(widget, QSlider):
+                            # Update slider
+                            widget.setValue(int(self.joint_values[joint_id]))
+                        elif isinstance(widget, QLineEdit):
+                            # Update input field
+                            widget.setText(str(int(self.joint_values[joint_id])))
     
     def create_gripper_control(self):
         """
@@ -130,36 +188,8 @@ class RoboticArmControlApp(QWidget):
         for joint_id in range(len(self.joint_values)):
             self.joint_values[joint_id] = 0
         
-        # Get the joints group from main layout
-        main_layout = self.layout()
-        joints_group = None
-        
-        # Find the joints group
-        for i in range(main_layout.count()):
-            widget = main_layout.itemAt(i).widget()
-            if isinstance(widget, QGroupBox) and widget.title() == "Joint Controls":
-                joints_group = widget
-                break
-        
-        if joints_group:
-            joints_layout = joints_group.layout()
-            # Update each joint's controls
-            for joint_id in range(joints_layout.count()):
-                joint_layout = joints_layout.itemAt(joint_id)
-                if joint_layout:
-                    # Update each widget in the joint layout
-                    for i in range(joint_layout.count()):
-                        widget = joint_layout.itemAt(i).widget()
-                        if isinstance(widget, QLabel):
-                            # Update label
-                            joint_name = ["Base", "Shoulder", "Elbow", "Wrist", "Hand"][joint_id]
-                            widget.setText(f"{joint_name} Joint: 0")
-                        elif isinstance(widget, QSlider):
-                            # Update slider
-                            widget.setValue(0)
-                        elif isinstance(widget, QLineEdit):
-                            # Update input field
-                            widget.setText("0")
+        # Update UI
+        self.update_joint_controls()
         
         # Send command to move all joints to 0
         self.send_move_all_joints_command()
@@ -303,7 +333,7 @@ class RoboticArmControlApp(QWidget):
         main_layout.addWidget(connection_group)
 
         # Joint Controls Group
-        joints_group = QGroupBox("Joint Controls")
+        joints_group = QGroupBox("Joint Controls (degrees)")
         joints_group.setStyleSheet("""
             QGroupBox {
                 border: 2px solid #555555;
@@ -365,13 +395,20 @@ class RoboticArmControlApp(QWidget):
         self.setLayout(main_layout)
 
     def update_label(self, label, joint_name, value):
-        label.setText(f"{joint_name} Joint: {value}")
+        """
+        Update the label text to display the joint name and value when the slider is moved
+        """
+        label.setText(f"{joint_name} Joint")
 
-    def send_command(self, joint_id, value):
+    def send_command(self, joint_id, angle_value):
+        """
+        Send a command to the serial interface to move a joint to a given angle.
+        """
         # Determine if value is negative and create appropriate command
-        direction = "1" if value < 0 else "0"
-        abs_value = abs(value)
-        command = f"m{joint_id}{direction}{abs_value}"
+        direction = "1" if angle_value < 0 else "0"
+        steps_value = angle_to_steps(angle_value, self.joints_mechanical_config[joint_id].gear_reduction,
+                                     self.joints_mechanical_config[joint_id].microstepping)
+        command = f"m{joint_id}{direction}{abs(steps_value)}"
         
         if joint_id == 6:
             self.serial_interface.send_command(command)
@@ -383,10 +420,15 @@ class RoboticArmControlApp(QWidget):
         move_all_joints_command = ""
         for i, joint_value in enumerate(self.joint_values):
             direction = "0" if joint_value >= 0 else "1"
-            abs_value = abs(joint_value)
-            move_all_joints_command += f"m{i}{direction}{abs_value}"
+            steps_value = angle_to_steps(joint_value, self.joints_mechanical_config[i].gear_reduction,
+                                         self.joints_mechanical_config[i].microstepping)
+            move_all_joints_command += f"m{i}{direction}{abs(steps_value)}"
 
         self.serial_interface.send_move_joint_command(move_all_joints_command)
+
+        print(f"Joints values: {self.joint_values}")
+        compute_forward_kinematics(self.robot, self.joint_values, unit='deg')
+        
 
     def add_current_pose(self):
         """Add current joint values as a pose to the sequence"""
@@ -456,16 +498,71 @@ class RoboticArmControlApp(QWidget):
                 f"background-color: {color}; border-radius: 7px;"
             )
 
+class RoboticArmControlApp(QMainWindow):
+    """
+    Main application class for the robotic arm control GUI.
+    """
+    def __init__(self):
+        super().__init__()
+        
+        # Create a tab widget
+        self.tab_widget = QTabWidget()
+        
+        # Create the control panel tab
+        self.control_panel = ControlPanel()
+        self.tab_widget.addTab(self.control_panel, "Control Panel")
+        
+        # Create the kinematics tab
+        self.kinematics_panel = KinematicsInterface(
+            robot=self.control_panel.robot,
+            joint_values=self.control_panel.joint_values,
+            set_joints_config_callback=self.control_panel.set_joint_values,
+            move_joints_callback=self.control_panel.send_move_all_joints_command
+        )
+        self.tab_widget.addTab(self.kinematics_panel, "Kinematics")
+        
+        # Set the tab widget as the central widget
+        self.setCentralWidget(self.tab_widget)
+        
+        # Set window properties
+        self.setWindowTitle("MOGA Robotics | 5DOF Arm Control")
+        self.setWindowIcon(QIcon("data/app_logo.png"))
+        self.resize(800, 900)  # Adjust size to accommodate tabs
+    
+    def closeEvent(self, event):
+        """Handle the window close event"""
+        self.control_panel.clean_up()
+        event.accept()
+
 if __name__ == "__main__":
     
     app = QApplication([])
 
-    app.setApplicationName("MOGA Robotics | 5DOF Arm Control")  # Set the application name
-    app.setWindowIcon(QIcon("data/app_logo.png")) # set the logo for the application
     app.setStyleSheet("""
         QWidget {
             background-color: #222222; 
             color: #FFFFFF;
+        }
+        QTabWidget::pane {
+            border: 1px solid #555555;
+            border-radius: 6px;
+            margin-top: -1px;
+        }
+        QTabBar::tab {
+            background-color: #333333;
+            border: 1px solid #555555;
+            border-bottom: none;
+            border-top-left-radius: 4px;
+            border-top-right-radius: 4px;
+            padding: 8px 12px;
+            margin-right: 2px;
+        }
+        QTabBar::tab:selected {
+            background-color: #444444;
+            border-bottom: none;
+        }
+        QTabBar::tab:hover {
+            background-color: #505050;
         }
     """)
 

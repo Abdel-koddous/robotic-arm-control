@@ -1,5 +1,7 @@
 import time
 from PyQt6.QtCore import QObject, pyqtSignal
+from kinematics.angles_steps_conversion import angle_to_steps, init_joints_config
+
 class Pose:
     """
     Represents a pose of the robotic arm with joint values.
@@ -58,11 +60,15 @@ class SequenceManager(QObject):
     
     def execute_pose(self, pose):
         """Execute a single pose"""
+        joints_mechanical_config = init_joints_config()
         move_all_joints_command = ""
         for i, joint_value in enumerate(pose.joint_values):
             direction = "0" if joint_value >= 0 else "1"
-            abs_value = abs(joint_value)
-            move_all_joints_command += f"m{i}{direction}{abs_value}"
+            #abs_value = abs(joint_value)
+            steps_value = angle_to_steps(joint_value, joints_mechanical_config[i].gear_reduction,
+                                joints_mechanical_config[i].microstepping)
+            
+            move_all_joints_command += f"m{i}{direction}{abs(steps_value)}"
 
         return self.serial_interface.send_move_joint_command(move_all_joints_command)
     
