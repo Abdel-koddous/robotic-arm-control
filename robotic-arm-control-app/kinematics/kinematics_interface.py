@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, 
     QLineEdit, QPushButton, QGroupBox, QRadioButton, QButtonGroup
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTimer, QCoreApplication
 import numpy as np
 from kinematics.inverse_kinematics import compute_inverse_kinematics
 
@@ -49,7 +49,7 @@ class KinematicsInterface(QWidget):
         
         # Units
         self.angle_unit = "deg"  # "deg" or "rad"
-        
+        self.sol_status = [False, False, "Uninitialized"] # [solution_validated, IK_solver_exit_status, IK_solver_exit_reason]
         self.init_ui()
         
     def init_ui(self):
@@ -219,6 +219,10 @@ class KinematicsInterface(QWidget):
             self.target_orientation["pitch"] = float(self.pitch_target.text())
             self.target_orientation["yaw"] = float(self.yaw_target.text())
             
+            # Update display and force processing events to show the message
+            self.solutions_display.setText("Calculating Inverse Kinematics solutions. Please wait...")
+            QCoreApplication.processEvents()  # Force the UI to update
+            
             # Use roboticstoolbox for inverse kinematics
             solutions = self.robotics_toolbox_inverse_kinematics()
             
@@ -227,9 +231,13 @@ class KinematicsInterface(QWidget):
             
             # Display solutions
             if solutions:
-                solutions_text = ""
+                solutions_text = ""  # Removed "Hello world\n"
                 for i, solution in enumerate(solutions):
                     solutions_text += f"Solution {i + 1}: {[round(val, 2) for val in solution]}\n"
+                    solutions_text += f"Solution validated: {self.sol_status[0]}\n"
+                    solutions_text += f"IK solver exit status: {self.sol_status[1]}\n"
+                    if not self.sol_status[1]:
+                        solutions_text += f"IK solver exit reason: {self.sol_status[2]}\n"
                 self.solutions_display.setText(solutions_text)
                 
                 print(f"Inverse kinematics calculated for target: "
@@ -266,14 +274,21 @@ class KinematicsInterface(QWidget):
             ]
             
             compute_rounds = 10
+            self.sol_status[0] = False # solution validated
+            self.sol_status[1] = False # IK_solver_exit_status
+            self.sol_status[2] = "Uninitialized" # IK_solver_exit_reason
             for i in range(compute_rounds):
                 sol = compute_inverse_kinematics(self.robot, position, orientation)
                 q_sol = sol.q
+                self.sol_status[1] = sol.success
+                self.sol_status[2] = sol.reason
+                
                 if any(abs(angle) > 120 for angle in np.rad2deg(q_sol)):
                     print(f"IK solution {i+1} is dropped (angle > 120) => {q_sol}")
                     continue
                 else:
                     print(f"IK solution {i+1} is validated => {q_sol}")
+                    self.sol_status[0] = True # solution validated
                     break
                 
             # Convert to degrees if needed
