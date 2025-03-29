@@ -141,7 +141,7 @@ void setup() {
 
   for (int i = 0; i < NUMBER_OF_MOTORS; i++) {
     roboticArmSteppers[i].setMaxSpeed(500);
-    roboticArmSteppers[i].setAcceleration(1000);
+    roboticArmSteppers[i].setAcceleration(500);
   }
   for (int i = 0; i < NUMBER_OF_MOTORS; i++) {
     pinMode(steppers_enabPin[i], OUTPUT); // Set pin as output
