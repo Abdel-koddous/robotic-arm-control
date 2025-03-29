@@ -1,6 +1,6 @@
 #include <AccelStepper.h>
+#include "Servo.h"
 #include "homing_functions.h"
-#include <Wire.h>
 
 // Define stepper motor connections and motor interface type
 #define motorInterfaceType 1
@@ -24,6 +24,7 @@ AccelStepper roboticArmSteppers[NUMBER_OF_MOTORS] = {
     AccelStepper(motorInterfaceType, steppers_stepPin[4], steppers_dirPin[4])  // Hand motor
 };
 
+Servo gripperServo;
 void parseInputCommand(String command) {
   if (command.startsWith("s")) {
     Serial.println("Stop command received - Stopping all motors");
@@ -36,6 +37,13 @@ void parseInputCommand(String command) {
   }
   else if (command.startsWith("h")){
     homeAllAxes();
+  }
+  else if (command.startsWith("g")){
+    processGripperCommand(command);
+  }
+  else
+  {
+    Serial.println("INVALID command received => " + command);
   }
 }
 
@@ -106,6 +114,14 @@ void ManageStepperMovement(AccelStepper &stepper, int stepperIndex, bool &steppe
 }
 
 
+void processGripperCommand(String command){
+  if (command.startsWith("g")){
+    Serial.println("Processing gripper command => " + command);
+    int gripperPosition = command.substring(1).toInt();
+    gripperServo.write(gripperPosition);
+  }
+}
+
 
 
 void setup() {
@@ -123,6 +139,9 @@ void setup() {
   for (int i=0; i<NUMBER_OF_LS; i++){
   pinMode(limit_switchPins[i], INPUT_PULLUP);
   }
+
+  gripperServo.attach(11);
+  gripperServo.write(0);
 
   //pinMode(steppers_dirPin[0], INPUT);
   //digitalWrite(steppers_dirPin[0], HIGH);
