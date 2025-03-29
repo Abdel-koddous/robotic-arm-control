@@ -1,10 +1,20 @@
 #include <AccelStepper.h>
+#include "homing_functions.h"
+#include <Wire.h>
 
 // Define stepper motor connections and motor interface type
 #define motorInterfaceType 1
 #define NUMBER_OF_MOTORS 5
-int steppers_dirPin[NUMBER_OF_MOTORS]  = {2, 4, 6, 8, 10};
-int steppers_stepPin[NUMBER_OF_MOTORS] = {3, 5, 7, 9, 11};
+#define NUMBER_OF_LS 4
+
+
+
+int steppers_dirPin[NUMBER_OF_MOTORS]  = {A1, A7, 48, 28, 34};
+int steppers_stepPin[NUMBER_OF_MOTORS] = {A0, A6, 46, 26, 36};
+int steppers_enabPin[NUMBER_OF_MOTORS] = {38, A2, A8, 24, 30};
+
+int limit_switchPins[NUMBER_OF_LS] = {3, 2, 14, 15};
+  
 
 AccelStepper roboticArmSteppers[NUMBER_OF_MOTORS] = {
     AccelStepper(motorInterfaceType, steppers_stepPin[0], steppers_dirPin[0]), // Base motor
@@ -20,8 +30,12 @@ void parseInputCommand(String command) {
     for (int i = 0; i < NUMBER_OF_MOTORS; i++) {
       roboticArmSteppers[i].stop();
     }
-  } else if (command.startsWith("m")) {
+  } 
+  else if (command.startsWith("m")) {
     parseMultipleMoveCommands(command);
+  }
+  else if (command.startsWith("h")){
+    homeAllAxes();
   }
 }
 
@@ -64,6 +78,7 @@ void processCommand(String command) {
     if (roboticArmSteppers[motorId].currentPosition() == targetPosition) {
       //Serial.println("Stepper " + String(motorId) + " is already at the target destination: " + String(roboticArmSteppers[motorId].currentPosition()));
       Serial.println("m" + String(motorId) + String(directionCode) + String(roboticArmSteppers[motorId].currentPosition()) + "done");
+
     } 
     else 
     {
@@ -90,12 +105,27 @@ void ManageStepperMovement(AccelStepper &stepper, int stepperIndex, bool &steppe
   }
 }
 
+
+
+
 void setup() {
   Serial.begin(9600);
+
+
   for (int i = 0; i < NUMBER_OF_MOTORS; i++) {
     roboticArmSteppers[i].setMaxSpeed(500);
     roboticArmSteppers[i].setAcceleration(1000);
   }
+  for (int i = 0; i < NUMBER_OF_MOTORS; i++) {
+    pinMode(steppers_enabPin[i], OUTPUT); // Set pin as output
+    digitalWrite(steppers_enabPin[i], LOW); // Set pin to LOW
+  }
+  for (int i=0; i<NUMBER_OF_LS; i++){
+  pinMode(limit_switchPins[i], INPUT_PULLUP);
+  }
+
+  //pinMode(steppers_dirPin[0], INPUT);
+  //digitalWrite(steppers_dirPin[0], HIGH);
 }
 
 bool stepperIsMoving[5] = {false, false, false, false, false};
@@ -109,4 +139,6 @@ void loop() {
       ManageStepperMovement(roboticArmSteppers[stepperIndex], stepperIndex, stepperIsMoving[stepperIndex]);
     }
   }
+
+
 }
