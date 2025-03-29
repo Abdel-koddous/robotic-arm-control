@@ -7,7 +7,7 @@ class SerialInterface:
         self.port = port
         self.baudrate = baudrate
         self.serial_connection = None
-        self.num_joints = 5
+        self.num_joints = 6
         self.joints_status = ["idle"] * self.num_joints
         self.move_command_monitoring_done = False
 

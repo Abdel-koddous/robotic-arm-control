@@ -199,7 +199,7 @@ class ControlPanel(QWidget):
         Args:
             value: Gripper position value (0-100)
         """
-        command = f"g{value}"
+        command = f"m5{value}"
         self.serial_interface.send_command(command)
         print(f"Sent gripper command: {command}")
 
@@ -465,6 +465,8 @@ class ControlPanel(QWidget):
             steps_value = angle_to_steps(joint_value, self.joints_mechanical_config[i].gear_reduction,
                                          self.joints_mechanical_config[i].microstepping)
             move_all_joints_command += f"m{i}{direction}{abs(steps_value)}"
+            if i == 5:
+                move_all_joints_command += f"m5{self.gripper_value}"
 
         self.serial_interface.send_move_joint_command(move_all_joints_command)
 
@@ -474,15 +476,15 @@ class ControlPanel(QWidget):
 
     def add_current_pose(self):
         """Add current joint values as a pose to the sequence"""
-        pose_index = self.sequence_manager.add_pose(self.joint_values)
+        pose_index = self.sequence_manager.add_pose(self.joint_values, self.gripper_value)
         self.update_poses_list()
-        print(f"Added pose {pose_index} with values: {self.joint_values}")
+        print(f"Added pose {pose_index} with values: {self.joint_values} - Gripper value: {self.gripper_value}")
 
     def update_poses_list(self):
         """Update the list of poses in the UI"""
         self.poses_list.clear()
         for i, pose in enumerate(self.sequence_manager.poses):
-            self.poses_list.addItem(f"Pose {i + 1}: {pose.joint_values}")
+            self.poses_list.addItem(f"Pose {i + 1}: {pose.joint_values} - Gripper value: {pose.gripper_value}")
 
     def play_sequence(self):
         """Start playing the sequence in a separate thread"""

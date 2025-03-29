@@ -6,8 +6,9 @@ class Pose:
     """
     Represents a pose of the robotic arm with joint values.
     """
-    def __init__(self, joint_values):
+    def __init__(self, joint_values, gripper_value):
         self.joint_values = joint_values.copy()  # Make a copy to avoid reference issues
+        self.gripper_value = gripper_value
     
     def __str__(self):
         return f"Pose(joints={self.joint_values})"
@@ -27,9 +28,9 @@ class SequenceManager(QObject):
         self.current_pose_index = 0
         self.play_direction = 1  # 1 for forward, -1 for backward
     
-    def add_pose(self, joint_values):
+    def add_pose(self, joint_values, gripper_value):
         """Add a new pose to the sequence"""
-        pose = Pose(joint_values)
+        pose = Pose(joint_values, gripper_value)
         self.poses.append(pose)
         # print(f"Added pose: {pose}")
         return len(self.poses) - 1  # Return index of added pose
@@ -69,6 +70,8 @@ class SequenceManager(QObject):
                                 joints_mechanical_config[i].microstepping)
             
             move_all_joints_command += f"m{i}{direction}{abs(steps_value)}"
+
+        move_all_joints_command += f"m5{pose.gripper_value}"
 
         return self.serial_interface.send_move_joint_command(move_all_joints_command)
     
