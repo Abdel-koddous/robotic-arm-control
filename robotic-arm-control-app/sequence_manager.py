@@ -26,7 +26,7 @@ class SequenceManager(QObject):
         self.interval = 1  # Default interval in seconds between poses
         self.is_playing = False
         self.current_pose_index = 0
-        self.play_direction = 1  # 1 for forward, -1 for backward
+        self.play_increment = 1  # 1 for forward, -1 for backward
     
     def add_pose(self, joint_values, gripper_value):
         """Add a new pose to the sequence"""
@@ -75,7 +75,7 @@ class SequenceManager(QObject):
 
         return self.serial_interface.send_move_joint_command(move_all_joints_command)
     
-    def play_sequence(self, back_and_forth=True):
+    def play_sequence(self):
         """Start playing the sequence"""
         if not self.poses:
             print("No poses in sequence")
@@ -83,7 +83,7 @@ class SequenceManager(QObject):
         
         self.is_playing = True
         self.current_pose_index = 0
-        self.play_direction = 1
+        self.play_increment = 1
         
         while self.is_playing:
             # Execute current pose
@@ -103,20 +103,14 @@ class SequenceManager(QObject):
             time.sleep(self.interval)
             
             # Update index based on direction
-            self.current_pose_index += self.play_direction
+            self.current_pose_index += self.play_increment
             
-            # Handle direction changes if back_and_forth is True
-            if back_and_forth:
-                if self.current_pose_index >= len(self.poses):
-                    self.current_pose_index = len(self.poses) - 2
-                    self.play_direction = -1
-                elif self.current_pose_index < 0:
-                    self.current_pose_index = 1
-                    self.play_direction = 1
-            else:
-                # Just loop from start if we reach the end
-                if self.current_pose_index >= len(self.poses):
-                    self.current_pose_index = 0
+            # Just loop from start if we reach the end
+            print("########################################################")
+            print(f"## SequenceManager Class - End of sequence reached - Loop from start")
+            print("########################################################")
+            if self.current_pose_index >= len(self.poses):
+                self.current_pose_index = 0
                 
         return True
     

@@ -496,8 +496,7 @@ class ControlPanel(QWidget):
         self.sequence_status_label.setStyleSheet("color: #00FF00;")  # Green color
         
         self.sequence_thread = threading.Thread(
-            target=self.sequence_manager.play_sequence,
-            kwargs={'back_and_forth': True}
+            target=self.sequence_manager.play_sequence
         )
         self.sequence_thread.start()
     
