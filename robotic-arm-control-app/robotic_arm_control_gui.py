@@ -20,7 +20,7 @@ class ControlPanel(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.serial_interface = SerialInterface()
-        self.joint_values = [0, 0, 0, 0, 0]  # Updated for 5 joints
+        self.joint_values = [0, 0, 0, 0, 0, 0]  # Updated for 6 joints
         self.gripper_value = 0
         self.sequence_manager = SequenceManager(self.serial_interface)
         self.sequence_manager.current_pose_changed.connect(self.update_current_pose_label)      
@@ -111,6 +111,8 @@ class ControlPanel(QWidget):
             
             # Update UI elements if needed
             self.update_joint_controls()
+        else:
+            print(f"Error setting joint values: {values} is not the same length as {self.joint_values}")
     
     def update_joint_controls(self):
         """
@@ -453,7 +455,7 @@ class ControlPanel(QWidget):
                                      self.joints_mechanical_config[joint_id].microstepping)
         command = f"m{joint_id}{direction}{abs(steps_value)}"
         
-        if joint_id == 6:
+        if joint_id == 7:
             self.serial_interface.send_command(command)
         else:
             self.serial_interface.send_move_joint_command(command)
@@ -466,7 +468,7 @@ class ControlPanel(QWidget):
             steps_value = angle_to_steps(joint_value, self.joints_mechanical_config[i].gear_reduction,
                                          self.joints_mechanical_config[i].microstepping)
             move_all_joints_command += f"m{i}{direction}{abs(steps_value)}"
-            if i == 5:
+            if i == 6:
                 move_all_joints_command += f"m5{self.gripper_value}"
 
         self.serial_interface.send_move_joint_command(move_all_joints_command)

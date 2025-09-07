@@ -58,7 +58,7 @@ class MoveitWebSocketWorker(QObject):
                     "op": "subscribe",
                     "topic": self.topic_subscription
                 }))
-                self.connection_status_changed.emit(f"Subscribed to {self.topic_subscription}")
+                self.connection_status_changed.emit(f"Subscribed to Moveit2 topic {self.topic_subscription}")
 
                 while not self.shutdown_event.is_set():
                     try:
@@ -135,6 +135,7 @@ class Moveit2Interface(QWidget):
 
     def connect_to_moveit2(self):
         """Connect to Moveit2."""
+        print("Moveit2Interface | connect_to_moveit2...")
         self.websocket_thread.start()
         self.connect_button.setText("Disconnect from Moveit2")
     
@@ -155,13 +156,20 @@ class Moveit2Interface(QWidget):
     def update_connection_status(self, status):
         """Update the connection status."""
         self.connection_status_label.setText(status)
-        color = "green" if status == "Connected" else "red"
+        color = "red" if status == "Disconnected" else "green"
         self.connection_status_label.setStyleSheet(f"color: {color};")
     
     def update_trajectory(self, initial_deg, target_deg):
         """Update the trajectory."""
         self.initial_pose_input.setText(str(initial_deg))
         self.target_pose_input.setText(str(target_deg))
+
+        print("########################################################")
+        print(f"Moveit2Interface | update_trajectory | initial pose: {initial_deg}")
+        print(f"Moveit2Interface | update_trajectory | target pose: {target_deg}")
+        print("Propagating target pose to the main app...")
+        self.set_joints_config_callback(target_deg)
+
 
     def handle_websocket_error(self, error):
         """Handle the websocket error."""

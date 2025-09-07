@@ -2,7 +2,10 @@
 This module contains conversion functions between joint angles and stepper motor steps.
 The conversion is a function of the gear ratio and microstepping parameters 
 for each stepper motor/joint.
-
+mogabot2 info:
+DOF = 6
+joints_gear_reduction = [1/7, 1/40, 1/7, 1/4, 1/1, 1/1]
+joints_microstepping = [1/4, 1/2, 1/2, 1/4, 1/16, 1/16]
 Examples:
 - No gear reduction, and no microstepping (full steps)
 * 1 full revolution = 360 degrees = 200 steps
@@ -37,10 +40,10 @@ def init_joints_config():
     Initialize the joint configurations for the robotic arm with their given 
     gear reduction and microstepping values.
     """
-    num_joints = 5
+    num_joints = 6
     JointConfig = namedtuple("JointConfig", ["gear_reduction", "microstepping"])
-    joints_gear_reduction = [1/7, 1/40, 1/25, 1/4, 1/1]
-    joints_microstepping = [1/4, 1/2, 1/2, 1/4, 1/16]
+    joints_gear_reduction = [1/7, 1/40, 1/7, 1/4, 1/1, 1/1]
+    joints_microstepping = [1/4, 1/2, 1/2, 1/4, 1/16, 1/16]
 
     joints_configs = []
     for joint_index in range(num_joints):
