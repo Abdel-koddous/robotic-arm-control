@@ -10,6 +10,7 @@ import threading
 from kinematics.angles_steps_conversion import angle_to_steps, init_joints_config
 from kinematics.forward_kinematics import load_robot_urdf, compute_forward_kinematics
 from kinematics.kinematics_interface import KinematicsInterface
+from path_planning.moveit2_interface import Moveit2Interface
 
 class ControlPanel(QWidget):
     """
@@ -556,13 +557,21 @@ class RoboticArmControlApp(QMainWindow):
         self.tab_widget.addTab(self.control_panel, "Control Panel")
         
         # Create the kinematics tab
-        self.kinematics_panel = KinematicsInterface(
-            robot=self.control_panel.robot,
+        #self.kinematics_panel = KinematicsInterface(
+        #    robot=self.control_panel.robot,
+        #    joint_values=self.control_panel.joint_values,
+        #    set_joints_config_callback=self.control_panel.set_joint_values,
+        #    move_joints_callback=self.control_panel.send_move_all_joints_command
+        #)
+        #self.tab_widget.addTab(self.kinematics_panel, "Kinematics")
+        
+        # Create the moveit2 tab
+        self.moveit2_panel = Moveit2Interface(
             joint_values=self.control_panel.joint_values,
             set_joints_config_callback=self.control_panel.set_joint_values,
             move_joints_callback=self.control_panel.send_move_all_joints_command
         )
-        self.tab_widget.addTab(self.kinematics_panel, "Kinematics")
+        self.tab_widget.addTab(self.moveit2_panel, "Moveit2")
         
         # Set the tab widget as the central widget
         self.setCentralWidget(self.tab_widget)
