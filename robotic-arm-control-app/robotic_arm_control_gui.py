@@ -8,8 +8,6 @@ from serial_interface_control import SerialInterface
 from sequence_manager import SequenceManager
 import threading
 from kinematics.angles_steps_conversion import angle_to_steps, init_joints_config
-from kinematics.forward_kinematics import load_robot_urdf, compute_forward_kinematics
-from kinematics.kinematics_interface import KinematicsInterface
 from path_planning.moveit2_interface import Moveit2Interface
 
 class ControlPanel(QWidget):
@@ -33,7 +31,6 @@ class ControlPanel(QWidget):
         self.status_timer.start(100)  # Update every 100ms
 
         self.joints_mechanical_config = init_joints_config()
-        self.robot = load_robot_urdf()
 
         self.init_ui()
 
@@ -474,7 +471,6 @@ class ControlPanel(QWidget):
         self.serial_interface.send_move_joint_command(move_all_joints_command)
 
         print(f"Joints values: {self.joint_values}")
-        compute_forward_kinematics(self.robot, self.joint_values, unit='deg')
         
 
     def add_current_pose(self):
@@ -558,15 +554,6 @@ class RoboticArmControlApp(QMainWindow):
         self.control_panel = ControlPanel()
         self.tab_widget.addTab(self.control_panel, "Control Panel")
         
-        # Create the kinematics tab
-        #self.kinematics_panel = KinematicsInterface(
-        #    robot=self.control_panel.robot,
-        #    joint_values=self.control_panel.joint_values,
-        #    set_joints_config_callback=self.control_panel.set_joint_values,
-        #    move_joints_callback=self.control_panel.send_move_all_joints_command
-        #)
-        #self.tab_widget.addTab(self.kinematics_panel, "Kinematics")
-        
         # Create the moveit2 tab
         self.moveit2_panel = Moveit2Interface(
             joint_values=self.control_panel.joint_values,
@@ -579,7 +566,7 @@ class RoboticArmControlApp(QMainWindow):
         self.setCentralWidget(self.tab_widget)
         
         # Set window properties
-        self.setWindowTitle("MOGA Robotics | 5DOF Arm Control")
+        self.setWindowTitle("MOGA Robotics | 6DOF Arm Control")
         self.setWindowIcon(QIcon("data/app_logo.png"))
         self.resize(800, 900)  # Adjust size to accommodate tabs
     

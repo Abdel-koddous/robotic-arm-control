@@ -72,6 +72,15 @@ class MoveitWebSocketWorker(QObject):
                             trajectory_points = trajectory["joint_trajectory"]["points"]
                             
                             if trajectory_points:
+                                
+                                number_of_points = len(trajectory_points)
+                                print("Number of waypoints in the received trajectory: ", number_of_points)
+                                waypoints_gap = 10
+                                for waypoint_index in range(0, number_of_points, waypoints_gap):
+                                    waypoint = trajectory_points[waypoint_index]["positions"]
+                                    waypoint_deg = [np.round(np.rad2deg(pos), 2) for pos in waypoint]
+                                    print(f"Waypoint {waypoint_index}: {waypoint_deg}")
+
                                 initial_pose = trajectory_points[0]["positions"]
                                 target_pose = trajectory_points[-1]["positions"]
                                 
@@ -79,6 +88,7 @@ class MoveitWebSocketWorker(QObject):
                                 initial_deg = [np.round(np.rad2deg(pos), 2) for pos in initial_pose]
                                 target_deg = [np.round(np.rad2deg(pos), 2) for pos in target_pose]
                                 
+                                print(f"Target waypoint: {target_deg}")
                                 # Emit signal with data
                                 self.trajectory_received.emit(initial_deg, target_deg)
                     except asyncio.TimeoutError:
