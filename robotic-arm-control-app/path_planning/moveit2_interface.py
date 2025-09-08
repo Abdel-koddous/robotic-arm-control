@@ -169,6 +169,7 @@ class Moveit2Interface(QWidget):
         print(f"Moveit2Interface | update_trajectory | target pose: {target_deg}")
         print("Propagating target pose to the main app...")
         self.set_joints_config_callback(target_deg)
+        self.move_joints_callback()
 
 
     def handle_websocket_error(self, error):

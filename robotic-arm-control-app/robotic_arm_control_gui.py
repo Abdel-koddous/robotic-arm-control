@@ -108,7 +108,7 @@ class ControlPanel(QWidget):
         if len(values) == len(self.joint_values):
             for i, value in enumerate(values):
                 self.joint_values[i] = value
-            
+            print(f"ControlPanel | set_joint_values | Joint values set: {self.joint_values}")
             # Update UI elements if needed
             self.update_joint_controls()
         else:
